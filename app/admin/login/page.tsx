@@ -19,8 +19,8 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-[#334155] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#1e293b]">Admin Sekolah</h1>
-          <p className="text-gray-500 mt-2">Silakan login dengan akun Admin Sekolah</p>
+          <h1 className="text-3xl font-bold text-[#1e293b]">Admin</h1>
+          <p className="text-gray-500 mt-2">ASESMEN CBT by Dausain</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
