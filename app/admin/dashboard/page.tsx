@@ -37,6 +37,16 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchData() }, [])
 
+  // --- LOGIK GENERATE PASSWORD ---
+  const handleGeneratePassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setFormSiswa({ ...formSiswa, password: result });
+  }
+
   // --- LOGIK DATA PENGGUNA ---
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -170,9 +180,8 @@ export default function DashboardPage() {
               <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ margin: 0 }}>Data Siswa (Total: {students.length})</h3>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button style={{ backgroundColor: '#f59e0b', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer' }}>🔑</button>
                     <button onClick={() => { setIsEditSiswa(false); setFormSiswa({no_peserta:'', nama_lengkap:'', jk:'', kelas:'', password:'', sesi:'', status:false}); setShowModalSiswa(true); }} style={{ backgroundColor: '#1e293b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <span style={{ fontSize: '18px' }}>+</span>
+                        <span style={{ fontSize: '18px' }}>+ Tambah Siswa</span>
                     </button>
                 </div>
               </div>
@@ -287,7 +296,10 @@ export default function DashboardPage() {
               </div>
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#64748b', marginBottom: '5px' }}>Password</label>
-                <input placeholder="Password" value={formSiswa.password} onChange={(e) => setFormSiswa({...formSiswa, password: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} required />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <input placeholder="Password" value={formSiswa.password} onChange={(e) => setFormSiswa({...formSiswa, password: e.target.value})} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} required />
+                    <button type="button" onClick={handleGeneratePassword} style={{ backgroundColor: '#f59e0b', color: 'white', border: 'none', padding: '0 15px', borderRadius: '8px', cursor: 'pointer', fontSize: '18px' }} title="Acak Password">🔑</button>
+                </div>
               </div>
               <div style={{ marginBottom: '25px' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#64748b', marginBottom: '5px' }}>Sesi</label>
