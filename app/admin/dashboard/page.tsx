@@ -60,6 +60,13 @@ export default function DashboardPage() {
     }
   }
 
+  const deleteUser = async (id: number, username: string) => {
+    if (confirm(`Hapus pengguna: ${username}?`)) {
+      await supabase.from('admin_user').delete().eq('id', id)
+      fetchData()
+    }
+  }
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Arial, sans-serif', backgroundColor: '#f1f5f9' }}>
       {/* SIDEBAR */}
@@ -98,12 +105,16 @@ export default function DashboardPage() {
 
           {activeMenu === 'user' && (
             <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                <h3 style={{ marginTop: 0 }}>Data Pengguna</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <h3 style={{ margin: 0 }}>Data Pengguna</h3>
+                  <button style={{ backgroundColor: '#1e293b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>+ Tambah Admin</button>
+                </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
-                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #f1f5f9' }}>
+                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
                             <th style={{ padding: '12px' }}>Username</th>
                             <th style={{ padding: '12px' }}>Nama Lengkap</th>
+                            <th style={{ padding: '12px', textAlign: 'center' }}>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -111,6 +122,12 @@ export default function DashboardPage() {
                             <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                 <td style={{ padding: '12px' }}>{u.username}</td>
                                 <td style={{ padding: '12px' }}>{u.nama_lengkap}</td>
+                                <td style={{ padding: '12px', textAlign: 'center' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                                    <button title="Edit" style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px' }}>📝</button>
+                                    <button onClick={() => deleteUser(u.id, u.username)} title="Hapus" style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px' }}>🗑️</button>
+                                  </div>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -140,8 +157,6 @@ export default function DashboardPage() {
                       <th style={{ padding: '12px', textAlign: 'center' }}>L/P</th>
                       <th style={{ padding: '12px', textAlign: 'center' }}>Kelas</th>
                       <th style={{ padding: '12px', textAlign: 'left' }}>Password</th>
-                      
-                      {/* KOLOM STATUS DENGAN TOMBOL ALL ON/OFF */}
                       <th style={{ padding: '12px', textAlign: 'center', width: '130px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
                             <span style={{ fontWeight: 'bold', fontSize: '11px', color: '#475569' }}>STATUS</span>
@@ -151,7 +166,6 @@ export default function DashboardPage() {
                             </div>
                         </div>
                       </th>
-                      
                       <th style={{ padding: '12px', textAlign: 'center' }}>Sesi</th>
                       <th style={{ padding: '12px', textAlign: 'center' }}>Aksi</th>
                     </tr>
