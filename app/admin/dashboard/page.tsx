@@ -13,10 +13,18 @@ export default function DashboardPage() {
   const [users, setUsers] = useState<any[]>([])
   const [students, setStudents] = useState<any[]>([])
   
+  // STATE UNTUK MODAL SISWA
   const [showModalSiswa, setShowModalSiswa] = useState(false)
   const [isEditSiswa, setIsEditSiswa] = useState(false)
   const [formSiswa, setFormSiswa] = useState({
     no_peserta: '', nama_lengkap: '', jk: '', kelas: '', password: '', sesi: '', status: false
+  })
+
+  // STATE UNTUK MODAL PENGGUNA (ADMIN)
+  const [showModalUser, setShowModalUser] = useState(false)
+  const [isEditUser, setIsEditUser] = useState(false)
+  const [formUser, setFormUser] = useState({
+    id: null, username: '', nama_lengkap: '', password: ''
   })
 
   const fetchData = async () => {
@@ -29,6 +37,34 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchData() }, [])
 
+  // --- LOGIK DATA PENGGUNA ---
+  const handleUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (isEditUser) {
+      await supabase.from('admin_user').update({
+        username: formUser.username,
+        nama_lengkap: formUser.nama_lengkap,
+        password: formUser.password
+      }).eq('id', formUser.id)
+    } else {
+      await supabase.from('admin_user').insert([{
+        username: formUser.username,
+        nama_lengkap: formUser.nama_lengkap,
+        password: formUser.password
+      }])
+    }
+    setShowModalUser(false)
+    fetchData()
+  }
+
+  const deleteUser = async (id: number, username: string) => {
+    if (confirm(`Hapus pengguna: ${username}?`)) {
+      await supabase.from('admin_user').delete().eq('id', id)
+      fetchData()
+    }
+  }
+
+  // --- LOGIK DATA SISWA ---
   const toggleAllStatus = async (targetStatus: boolean) => {
     const confirmMsg = targetStatus ? "Aktifkan SEMUA siswa?" : "Nonaktifkan SEMUA siswa?";
     if (confirm(confirmMsg)) {
@@ -60,13 +96,6 @@ export default function DashboardPage() {
     }
   }
 
-  const deleteUser = async (id: number, username: string) => {
-    if (confirm(`Hapus pengguna: ${username}?`)) {
-      await supabase.from('admin_user').delete().eq('id', id)
-      fetchData()
-    }
-  }
-
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Arial, sans-serif', backgroundColor: '#f1f5f9' }}>
       {/* SIDEBAR */}
@@ -81,7 +110,6 @@ export default function DashboardPage() {
         </nav>
       </div>
 
-      {/* MAIN CONTENT */}
       <div style={{ flex: 1 }}>
         <div style={{ height: '60px', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 25px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
             <span style={{ fontWeight: 'bold', color: '#1e293b' }}>Panel Administrator</span>
@@ -89,7 +117,7 @@ export default function DashboardPage() {
         </div>
         
         <div style={{ padding: '25px' }}>
-          
+          {/* DASHBOARD */}
           {activeMenu === 'dashboard' && (
              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
@@ -103,11 +131,12 @@ export default function DashboardPage() {
              </div>
           )}
 
+          {/* DATA PENGGUNA */}
           {activeMenu === 'user' && (
             <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                   <h3 style={{ margin: 0 }}>Data Pengguna</h3>
-                  <button style={{ backgroundColor: '#1e293b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>+ Tambah Admin</button>
+                  <button onClick={() => { setIsEditUser(false); setFormUser({id:null, username:'', nama_lengkap:'', password:''}); setShowModalUser(true); }} style={{ backgroundColor: '#1e293b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>+ Tambah Admin</button>
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
@@ -124,7 +153,7 @@ export default function DashboardPage() {
                                 <td style={{ padding: '12px' }}>{u.nama_lengkap}</td>
                                 <td style={{ padding: '12px', textAlign: 'center' }}>
                                   <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                                    <button title="Edit" style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px' }}>📝</button>
+                                    <button onClick={() => { setIsEditUser(true); setFormUser(u); setShowModalUser(true); }} title="Edit" style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px' }}>📝</button>
                                     <button onClick={() => deleteUser(u.id, u.username)} title="Hapus" style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px' }}>🗑️</button>
                                   </div>
                                 </td>
@@ -135,6 +164,7 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* DATA SISWA */}
           {activeMenu === 'siswa' && (
             <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
               <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -146,7 +176,6 @@ export default function DashboardPage() {
                     </button>
                 </div>
               </div>
-              
               <div style={{ padding: '0 20px 20px 20px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                   <thead>
@@ -200,6 +229,33 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* MODAL FORM PENGGUNA (ADMIN) */}
+      {showModalUser && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)' }}>
+          <div style={{ backgroundColor: 'white', padding: '30px', width: '400px', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b' }}>{isEditUser ? 'Edit Data Admin' : 'Tambah Admin Baru'}</h3>
+            <form onSubmit={handleUserSubmit}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#64748b', marginBottom: '5px' }}>Username</label>
+                <input placeholder="admin_baru" value={formUser.username} onChange={(e) => setFormUser({...formUser, username: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} required />
+              </div>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#64748b', marginBottom: '5px' }}>Nama Lengkap</label>
+                <input placeholder="Nama Lengkap" value={formUser.nama_lengkap} onChange={(e) => setFormUser({...formUser, nama_lengkap: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} required />
+              </div>
+              <div style={{ marginBottom: '25px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#64748b', marginBottom: '5px' }}>Password</label>
+                <input type="text" placeholder="Password" value={formUser.password} onChange={(e) => setFormUser({...formUser, password: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} required />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button type="submit" style={{ backgroundColor: '#1e293b', color: 'white', width: '100%', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Simpan Admin</button>
+                <button type="button" onClick={() => setShowModalUser(false)} style={{ width: '100%', padding: '10px', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>Batal</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL FORM SISWA */}
       {showModalSiswa && (
