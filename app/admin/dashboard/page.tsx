@@ -43,6 +43,31 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchData() }, [])
 
+  // --- LOGIK GLOBAL STATUS (BARU) ---
+  const toggleAllStatus = async (targetStatus: boolean) => {
+    const pesan = targetStatus 
+      ? "Aktifkan akses ujian untuk SEMUA peserta?" 
+      : "Nonaktifkan akses ujian untuk SEMUA peserta?";
+      
+    if (confirm(pesan)) {
+      try {
+        const { error } = await supabase
+          .from('data_siswa')
+          .update({ status: targetStatus })
+          .neq('no_peserta', '0'); // Mengupdate semua record
+
+        if (error) throw error;
+        alert("Berhasil memperbarui status seluruh siswa.");
+        fetchData();
+      } catch (err: any) {
+        alert("Gagal: " + err.message);
+      }
+    }
+  }
+
+  // Cek apakah ada siswa yang sedang ON
+  const isAnyStudentActive = students.some(s => s.status === true);
+
   // --- LOGIK GENERATE PASSWORD ---
   const generateSecurePassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -132,7 +157,7 @@ export default function DashboardPage() {
         const { error } = await supabase.from('data_siswa').insert(formattedData);
         if (error) throw error;
         alert(`Sukses Import ${data.length} data.`);
-        setShowModalImport(false); // Tutup modal setelah sukses
+        setShowModalImport(false);
         fetchData();
       } catch (err: any) {
         alert("Gagal Import: Pastikan No Peserta tidak ada yang ganda di database.");
@@ -251,7 +276,6 @@ export default function DashboardPage() {
                 <h3 style={{ margin: 0 }}>Data Siswa ({students.length})</h3>
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <button onClick={() => setShowModalGenNoPes(true)} style={{ backgroundColor: '#8b5cf6', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>🆔 Gen NoPes</button>
-                    {/* TOMBOL BARU: IMPORT SISWA */}
                     <button onClick={() => setShowModalImport(true)} style={{ backgroundColor: '#1e293b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>📁 Import Siswa</button>
                     <button onClick={generateAllPasswords} style={{ backgroundColor: '#f59e0b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>🎲 Password</button>
                 </div>
@@ -265,7 +289,27 @@ export default function DashboardPage() {
                     <th style={{ padding: '12px', textAlign: 'center' }}>L/P</th>
                     <th style={{ padding: '12px', textAlign: 'center' }}>Kelas</th>
                     <th style={{ padding: '12px' }}>Password</th>
-                    <th style={{ padding: '12px', textAlign: 'center' }}>Status</th>
+                    {/* HEADER STATUS DENGAN SWITCH GLOBAL (BARU) */}
+                    <th style={{ padding: '12px', textAlign: 'center' }}>
+                        <div>Status</div>
+                        <div style={{ marginTop: '5px' }}>
+                          <button 
+                            onClick={() => toggleAllStatus(!isAnyStudentActive)}
+                            style={{ 
+                              backgroundColor: isAnyStudentActive ? '#22c55e' : '#94a3b8', 
+                              color: 'white', 
+                              border: 'none', 
+                              padding: '2px 8px', 
+                              borderRadius: '20px', 
+                              fontSize: '10px', 
+                              cursor: 'pointer',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            {isAnyStudentActive ? 'ALL ON' : 'ALL OFF'}
+                          </button>
+                        </div>
+                    </th>
                     <th style={{ padding: '12px', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
@@ -302,7 +346,7 @@ export default function DashboardPage() {
             <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '25px', lineHeight: '1.5' }}>
               Fitur ini digunakan untuk memasukkan data siswa secara massal menggunakan file Excel. 
               <br/><br/>
-              <span style={{ color: '#ef4444', fontWeight: 'bold' }}>PENTING:</span> Meng-import data baru akan <b>menghapus seluruh data siswa lama</b> yang ada di sistem.
+              <span style={{ color: '#ef4444', fontWeight: 'bold' }}>PENTING:</span> Meng-import data baru akan <b>menghapus seluruh data siswa lama</b>.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <button onClick={downloadTemplate} style={{ backgroundColor: '#64748b', color: 'white', padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>📥 Download Format Import</button>
@@ -316,7 +360,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* MODAL LAINNYA (GEN NOPES, ADMIN, EDIT SISWA) */}
+      {/* MODAL GEN NOPES */}
       {showModalGenNoPes && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '16px', width: '350px' }}>
@@ -333,6 +377,7 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* MODAL ADMIN */}
       {showModalUser && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ backgroundColor: 'white', padding: '30px', width: '350px', borderRadius: '12px' }}>
@@ -348,6 +393,7 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* MODAL EDIT SISWA */}
       {showModalSiswa && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ backgroundColor: 'white', padding: '30px', width: '400px', borderRadius: '12px' }}>
