@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const [activeMenu, setActiveMenu] = useState('dashboard')
   const [users, setUsers] = useState<any[]>([])
   const [students, setStudents] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   
   const [showModalSiswa, setShowModalSiswa] = useState(false)
   const [isEditSiswa, setIsEditSiswa] = useState(false)
@@ -19,55 +20,46 @@ export default function DashboardPage() {
     no_peserta: '', nama_lengkap: '', jk: '', kelas: '', password: '', sesi: '1', status: false
   })
 
-  const fetchData = async () => {
-    const { data: userData } = await supabase.from('admin_user').select('*').order('id', { ascending: true })
-    if (userData) setUsers(userData)
-    const { data: studentData } = await supabase.from('data_siswa').select('*').order('no_peserta', { ascending: true })
-    if (studentData) setStudents(studentData)
-  }
+  const fetchData = useCallback(async () => {
+    try {
+      const { data: userData } = await supabase.from('admin_user').select('*').order('id', { ascending: true })
+      if (userData) setUsers(userData)
+      const { data: studentData } = await supabase.from('data_siswa').select('*').order('no_peserta', { ascending: true })
+      if (studentData) setStudents(studentData)
+    } catch (err) {
+      console.error("Gagal ambil data:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => { fetchData() }, [fetchData])
 
-  // FUNGSI GENERATE PASSWORD: Huruf Besar, Kecil, Angka + * di akhir
   const generateAllPasswords = async () => {
     if (confirm("Generate password (Besar, Kecil, Angka, *) untuk SEMUA siswa?")) {
       const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
       const lower = "abcdefghijkmnopqrstuvwxyz";
       const nums = "23456789";
-      const allChars = upper + lower + nums;
+      const all = upper + lower + nums;
       
-      const newStudents = await Promise.all(students.map(async (s) => {
-        let randomPart = "";
+      for (const s of students) {
+        let res = "";
+        res += upper[Math.floor(Math.random() * upper.length)];
+        res += lower[Math.floor(Math.random() * lower.length)];
+        res += nums[Math.floor(Math.random() * nums.length)];
+        for(let i=0; i<2; i++) res += all[Math.floor(Math.random() * all.length)];
         
-        // Pastikan minimal ada 1 Huruf Besar, 1 Huruf Kecil, dan 1 Angka agar variatif
-        randomPart += upper.charAt(Math.floor(Math.random() * upper.length));
-        randomPart += lower.charAt(Math.floor(Math.random() * lower.length));
-        randomPart += nums.charAt(Math.floor(Math.random() * nums.length));
-        
-        // Sisa 2 karakter diambil acak dari semua kumpulan
-        for (let i = 0; i < 2; i++) {
-          randomPart += allChars.charAt(Math.floor(Math.random() * allChars.length));
-        }
-
-        // Acak urutan 5 karakter pertama supaya posisinya tidak selalu sama
-        const shuffled = randomPart.split('').sort(() => 0.5 - Math.random()).join('');
-        const newPass = shuffled + "*"; // Bintang tetap di urutan ke-6
-
-        await supabase.from('data_siswa').update({ password: newPass }).eq('no_peserta', s.no_peserta);
-        return { ...s, password: newPass };
-      }));
-      
-      setStudents(newStudents);
-      alert("Password kompleks dengan bintang di akhir berhasil dibuat!");
+        const finalPass = res.split('').sort(() => 0.5 - Math.random()).join('') + "*";
+        await supabase.from('data_siswa').update({ password: finalPass }).eq('no_peserta', s.no_peserta);
+      }
+      fetchData();
+      alert("Password berhasil di-generate!");
     }
   }
 
-  const toggleAllStatus = async (targetStatus: boolean) => {
-    const confirmMsg = targetStatus ? "Aktifkan SEMUA siswa?" : "Nonaktifkan SEMUA siswa?";
-    if (confirm(confirmMsg)) {
-      await supabase.from('data_siswa').update({ status: targetStatus }).neq('no_peserta', 'x') 
-      fetchData();
-    }
+  const toggleStatus = async (no: string, stat: boolean) => {
+    await supabase.from('data_siswa').update({ status: !stat }).eq('no_peserta', no)
+    fetchData()
   }
 
   const handleSiswaSubmit = async (e: React.FormEvent) => {
@@ -81,134 +73,108 @@ export default function DashboardPage() {
     fetchData()
   }
 
-  const toggleStatus = async (no_peserta: string, currentStatus: boolean) => {
-    await supabase.from('data_siswa').update({ status: !currentStatus }).eq('no_peserta', no_peserta)
-    fetchData()
-  }
-
-  const deleteSiswa = async (no_peserta: string, nama: string) => {
-    if (confirm(`Hapus siswa: ${nama}?`)) {
-      await supabase.from('data_siswa').delete().eq('no_peserta', no_peserta)
-      fetchData()
-    }
-  }
+  if (loading) return <div style={{ padding: '20px' }}>Memuat data...</div>
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Arial, sans-serif', backgroundColor: '#e2e8f0' }}>
-      <div style={{ width: '260px', backgroundColor: '#1e293b', color: '#cbd5e1' }}>
-        <div style={{ padding: '20px', backgroundColor: '#0f172a', color: 'white', fontWeight: 'bold' }}>📖 e-Asesmen SMA</div>
-        <nav style={{ marginTop: '10px' }}>
-          <div onClick={() => setActiveMenu('dashboard')} style={{ padding: '15px 20px', cursor: 'pointer', backgroundColor: activeMenu === 'dashboard' ? '#334155' : 'transparent', color: 'white' }}>📊 Dashboard</div>
-          <div onClick={() => setActiveMenu('user')} style={{ padding: '15px 20px', cursor: 'pointer', backgroundColor: activeMenu === 'user' ? '#334155' : 'transparent', color: 'white' }}>👤 Data Pengguna</div>
-          <div onClick={() => setActiveMenu('siswa')} style={{ padding: '15px 20px', cursor: 'pointer', backgroundColor: activeMenu === 'siswa' ? '#334155' : 'transparent', color: 'white' }}>🎓 Data Siswa</div>
-        </nav>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'sans-serif', backgroundColor: '#f1f5f9' }}>
+      {/* SIDEBAR */}
+      <div style={{ width: '250px', backgroundColor: '#0f172a', color: 'white' }}>
+        <div style={{ padding: '20px', fontWeight: 'bold', borderBottom: '1px solid #1e293b' }}>📖 e-Asesmen</div>
+        <div onClick={() => setActiveMenu('dashboard')} style={{ padding: '15px 20px', cursor: 'pointer', backgroundColor: activeMenu === 'dashboard' ? '#1e293b' : '' }}>📊 Dashboard</div>
+        <div onClick={() => setActiveMenu('user')} style={{ padding: '15px 20px', cursor: 'pointer', backgroundColor: activeMenu === 'user' ? '#1e293b' : '' }}>👤 Data Pengguna</div>
+        <div onClick={() => setActiveMenu('siswa')} style={{ padding: '15px 20px', cursor: 'pointer', backgroundColor: activeMenu === 'siswa' ? '#1e293b' : '' }}>🎓 Data Siswa</div>
       </div>
 
-      <div style={{ flex: 1 }}>
-        <div style={{ height: '60px', backgroundColor: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', padding: '0 25px' }}>Administrator (Admin)</div>
-        <div style={{ padding: '25px' }}>
-          
-          {activeMenu === 'dashboard' && (
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', borderLeft: '5px solid #3b82f6' }}>
-                  <h4 style={{ margin: 0, color: '#64748b' }}>Total Admin</h4>
-                  <h2 style={{ margin: '10px 0 0 0' }}>{users.length}</h2>
-                </div>
-                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', borderLeft: '5px solid #22c55e' }}>
-                  <h4 style={{ margin: 0, color: '#64748b' }}>Total Siswa</h4>
-                  <h2 style={{ margin: '10px 0 0 0' }}>{students.length}</h2>
-                </div>
-             </div>
-          )}
+      {/* MAIN CONTENT */}
+      <div style={{ flex: 1, padding: '20px' }}>
+        <h2 style={{ marginBottom: '20px', textTransform: 'uppercase' }}>{activeMenu.replace('_', ' ')}</h2>
+        
+        {activeMenu === 'dashboard' && (
+          <div style={{ display: 'flex', gap: '20px' }}>
+            <div style={{ flex: 1, padding: '20px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <p style={{ color: '#64748b', margin: 0 }}>Total Admin</p>
+              <h1 style={{ margin: 0 }}>{users.length}</h1>
+            </div>
+            <div style={{ flex: 1, padding: '20px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <p style={{ color: '#64748b', margin: 0 }}>Total Siswa</p>
+              <h1 style={{ margin: 0 }}>{students.length}</h1>
+            </div>
+          </div>
+        )}
 
-          {activeMenu === 'siswa' && (
-            <div style={{ backgroundColor: 'white', borderRadius: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-              <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
-                <h3 style={{ margin: 0 }}>MANAJEMEN SISWA</h3>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button title="Generate Password Kompleks" onClick={generateAllPasswords} style={{ backgroundColor: '#f59e0b', color: 'white', padding: '8px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '18px' }}>🔑</button>
-                  <button title="Tambah Siswa" onClick={() => { setIsEditSiswa(false); setFormSiswa({no_peserta:'', nama_lengkap:'', jk:'', kelas:'', password:'', sesi:'1', status:false}); setShowModalSiswa(true); }} style={{ backgroundColor: '#1e293b', color: 'white', padding: '8px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '18px' }}>👨‍🎓</button>
-                </div>
-              </div>
-              <div style={{ padding: '20px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#475569', color: 'white' }}>
-                      <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>No</th>
-                      <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>No Peserta</th>
-                      <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>Nama</th>
-                      <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>Password</th>
-                      <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>Sesi</th>
-                      <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>L/P</th>
-                      <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>Kelas</th>
-                      <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>
-                        STATUS <br/>
-                        <div style={{ marginTop: '5px', display: 'flex', gap: '2px', justifyContent: 'center' }}>
-                          <button onClick={() => toggleAllStatus(true)} style={{ fontSize: '8px', cursor: 'pointer', backgroundColor: '#22c55e', color: 'white', border: 'none', padding: '2px 5px' }}>ON</button>
-                          <button onClick={() => toggleAllStatus(false)} style={{ fontSize: '8px', cursor: 'pointer', backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '2px 5px' }}>OFF</button>
-                        </div>
-                      </th>
-                      <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>AKSI</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {students.map((s, index) => (
-                      <tr key={s.no_peserta} style={{ backgroundColor: index % 2 === 0 ? 'white' : '#f8fafc' }}>
-                        <td style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>{index + 1}</td>
-                        <td style={{ padding: '8px', border: '1px solid #cbd5e1' }}>{s.no_peserta}</td>
-                        <td style={{ padding: '8px', border: '1px solid #cbd5e1' }}>{s.nama_lengkap}</td>
-                        <td style={{ padding: '8px', border: '1px solid #cbd5e1', color: '#2563eb', fontWeight: 'bold' }}>{s.password}</td>
-                        <td style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>{s.sesi}</td>
-                        <td style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>{s.jk}</td>
-                        <td style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>{s.kelas}</td>
-                        <td style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>
-                          <button onClick={() => toggleStatus(s.no_peserta, s.status)} style={{ backgroundColor: s.status ? '#22c55e' : '#94a3b8', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '10px', cursor: 'pointer', fontSize: '10px' }}>
-                            {s.status ? 'ON' : 'OFF'}
-                          </button>
-                        </td>
-                        <td style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>
-                          <button onClick={() => { setIsEditSiswa(true); setFormSiswa(s); setShowModalSiswa(true); }} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>✏️</button>
-                          <button onClick={() => deleteSiswa(s.no_peserta, s.nama_lengkap)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>🗑️</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        {activeMenu === 'user' && (
+          <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '10px' }}>Username</th>
+                  <th style={{ padding: '10px' }}>Nama Lengkap</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '10px' }}>{u.username}</td>
+                    <td style={{ padding: '10px' }}>{u.nama_lengkap}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeMenu === 'siswa' && (
+          <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0 }}>Daftar Murid</h3>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={generateAllPasswords} style={{ padding: '8px 15px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>🔑 Generate</button>
+                <button onClick={() => { setIsEditSiswa(false); setShowModalSiswa(true); }} style={{ padding: '8px 15px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>🎓 Tambah</button>
               </div>
             </div>
-          )}
-        </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '10px' }}>No Peserta</th>
+                  <th style={{ padding: '10px' }}>Nama</th>
+                  <th style={{ padding: '10px' }}>Password</th>
+                  <th style={{ padding: '10px' }}>Status</th>
+                  <th style={{ padding: '10px' }}>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map(s => (
+                  <tr key={s.no_peserta} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '10px' }}>{s.no_peserta}</td>
+                    <td style={{ padding: '10px' }}>{s.nama_lengkap}</td>
+                    <td style={{ padding: '10px', fontWeight: 'bold', color: '#2563eb' }}>{s.password}</td>
+                    <td style={{ padding: '10px' }}>
+                      <button onClick={() => toggleStatus(s.no_peserta, s.status)} style={{ backgroundColor: s.status ? '#22c55e' : '#94a3b8', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '15px', cursor: 'pointer', fontSize: '12px' }}>
+                        {s.status ? 'Aktif' : 'Off'}
+                      </button>
+                    </td>
+                    <td style={{ padding: '10px' }}>
+                      <button onClick={() => { setFormSiswa(s); setIsEditSiswa(true); setShowModalSiswa(true); }} style={{ cursor: 'pointer', marginRight: '10px', background: 'none', border: 'none' }}>✏️</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
+      {/* MODAL SISWA */}
       {showModalSiswa && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ backgroundColor: 'white', padding: '25px', width: '450px', borderRadius: '8px' }}>
-            <h3 style={{ marginTop: 0 }}>{isEditSiswa ? '✏️ Edit Siswa' : '➕ Tambah Siswa'}</h3>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '10px', width: '400px' }}>
+            <h3>{isEditSiswa ? 'Edit Murid' : 'Tambah Murid'}</h3>
             <form onSubmit={handleSiswaSubmit}>
-              <label style={{ fontSize: '12px', fontWeight: 'bold' }}>No Peserta</label>
-              <input value={formSiswa.no_peserta} disabled={isEditSiswa} onChange={(e) => setFormSiswa({...formSiswa, no_peserta: e.target.value})} style={{ width: '100%', marginBottom: '10px', padding: '8px', border: '1px solid #ccc' }} required />
-              <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Nama Lengkap</label>
-              <input value={formSiswa.nama_lengkap} onChange={(e) => setFormSiswa({...formSiswa, nama_lengkap: e.target.value})} style={{ width: '100%', marginBottom: '10px', padding: '8px', border: '1px solid #ccc' }} required />
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '12px', fontWeight: 'bold' }}>L/P</label>
-                  <input maxLength={1} value={formSiswa.jk} onChange={(e) => setFormSiswa({...formSiswa, jk: e.target.value.toUpperCase()})} style={{ width: '100%', marginBottom: '10px', padding: '8px', border: '1px solid #ccc' }} required />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Kelas</label>
-                  <input maxLength={2} value={formSiswa.kelas} onChange={(e) => setFormSiswa({...formSiswa, kelas: e.target.value.toUpperCase()})} style={{ width: '100%', marginBottom: '10px', padding: '8px', border: '1px solid #ccc' }} required />
-                </div>
-              </div>
-              <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Password</label>
-              <input value={formSiswa.password} onChange={(e) => setFormSiswa({...formSiswa, password: e.target.value})} style={{ width: '100%', marginBottom: isEditSiswa ? '10px' : '20px', padding: '8px', border: '1px solid #ccc' }} required />
-              {isEditSiswa && (
-                <>
-                  <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Sesi</label>
-                  <input value={formSiswa.sesi} onChange={(e) => setFormSiswa({...formSiswa, sesi: e.target.value})} style={{ width: '100%', marginBottom: '20px', padding: '8px', border: '1px solid #ccc' }} required />
-                </>
-              )}
-              <button type="submit" style={{ backgroundColor: '#3b82f6', color: 'white', width: '100%', padding: '12px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Simpan Data</button>
-              <button type="button" onClick={() => setShowModalSiswa(false)} style={{ width: '100%', marginTop: '10px', padding: '10px', background: 'none', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}>Batal</button>
+              <input placeholder="No Peserta" value={formSiswa.no_peserta} onChange={e => setFormSiswa({...formSiswa, no_peserta: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '10px' }} required />
+              <input placeholder="Nama Lengkap" value={formSiswa.nama_lengkap} onChange={e => setFormSiswa({...formSiswa, nama_lengkap: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '10px' }} required />
+              <input placeholder="Password" value={formSiswa.password} onChange={e => setFormSiswa({...formSiswa, password: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '10px' }} required />
+              <button type="submit" style={{ width: '100%', padding: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px' }}>Simpan</button>
+              <button type="button" onClick={() => setShowModalSiswa(false)} style={{ width: '100%', marginTop: '10px', background: 'none', border: 'none', cursor: 'pointer' }}>Batal</button>
             </form>
           </div>
         </div>
