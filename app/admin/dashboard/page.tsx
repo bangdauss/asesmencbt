@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const [users, setUsers] = useState<any[]>([])
   const [students, setStudents] = useState<any[]>([])
   
-  // STATE UNTUK MODAL SISWA (Hanya untuk Edit)
+  // STATE UNTUK MODAL SISWA
   const [showModalSiswa, setShowModalSiswa] = useState(false)
   const [isEditSiswa, setIsEditSiswa] = useState(false)
   const [formSiswa, setFormSiswa] = useState({
@@ -45,7 +45,7 @@ export default function DashboardPage() {
     for (let i = 0; i < 6; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return result + '*'; 
+    return result + '*';
   }
 
   const handleGeneratePassword = () => {
@@ -53,7 +53,7 @@ export default function DashboardPage() {
   }
 
   const generateAllPasswords = async () => {
-    if (confirm("Generate password baru untuk SEMUA siswa? Password lama akan diganti.")) {
+    if (confirm("Generate password baru untuk SEMUA siswa?")) {
       const { data: allStudents } = await supabase.from('data_siswa').select('no_peserta');
       if (allStudents) {
         const updates = allStudents.map(siswa => {
@@ -69,22 +69,22 @@ export default function DashboardPage() {
     }
   }
 
-  // --- LOGIK IMPORT & TEMPLATE (HAPUS DATA LAMA & GANTI BARU) ---
+  // --- LOGIK IMPORT (GANTI TOTAL DATA LAMA) ---
   const downloadTemplate = () => {
     const template = [
-      { no_peserta: '1001', nama_lengkap: 'Nama Siswa', jk: 'L', kelas: '6A', password: 'auto', sesi: '1' }
+      { no_peserta: '1001', nama_lengkap: 'Contoh Nama', jk: 'L', kelas: '6A', password: 'auto', sesi: '1' }
     ];
     const ws = XLSX.utils.json_to_sheet(template);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template_Siswa");
-    XLSX.writeFile(wb, "template_asesmen.xlsx");
+    XLSX.writeFile(wb, "template_siswa.xlsx");
   };
 
   const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!confirm("Peringatan: SELURUH DATA LAMA AKAN DIHAPUS. Lanjutkan import data baru?")) {
+    if (!confirm("PERINGATAN: Seluruh data siswa LAMA akan DIHAPUS. Ganti dengan data baru dari Excel?")) {
       e.target.value = '';
       return;
     }
@@ -108,14 +108,10 @@ export default function DashboardPage() {
       }));
 
       try {
-        // Hapus data lama secara massal
         await supabase.from('data_siswa').delete().neq('no_peserta', '0');
-        
-        // Masukkan data baru hasil import
         const { error } = await supabase.from('data_siswa').insert(formattedData);
         if (error) throw error;
-
-        alert(`Berhasil! Data lama dihapus dan ${data.length} data baru telah di-import.`);
+        alert(`Sukses! ${data.length} data baru telah di-import.`);
         fetchData();
       } catch (err: any) {
         alert("Gagal Import: " + err.message);
@@ -125,7 +121,7 @@ export default function DashboardPage() {
     e.target.value = ''; 
   };
 
-  // --- LOGIK DATA PENGGUNA (ADMIN) ---
+  // --- LOGIK ADMIN ---
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isEditUser) {
@@ -152,9 +148,9 @@ export default function DashboardPage() {
     }
   }
 
-  // --- LOGIK DATA SISWA ---
+  // --- LOGIK SISWA ---
   const toggleAllStatus = async (targetStatus: boolean) => {
-    if (confirm(targetStatus ? "Aktifkan SEMUA siswa?" : "Nonaktifkan SEMUA siswa?")) {
+    if (confirm(targetStatus ? "Aktifkan SEMUA?" : "Matikan SEMUA?")) {
       await supabase.from('data_siswa').update({ status: targetStatus }).neq('no_peserta', '0') 
       fetchData();
     }
@@ -229,7 +225,7 @@ export default function DashboardPage() {
                     </thead>
                     <tbody>
                         {users.map(u => (
-                            <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }} onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')} onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                            <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }} onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#e2e8f0')} onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
                                 <td style={{ padding: '12px' }}>{u.username}</td>
                                 <td style={{ padding: '12px' }}>{u.nama_lengkap}</td>
                                 <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -266,19 +262,18 @@ export default function DashboardPage() {
                       <th style={{ padding: '12px', textAlign: 'center' }}>L/P</th>
                       <th style={{ padding: '12px', textAlign: 'center' }}>Kelas</th>
                       <th style={{ padding: '12px', textAlign: 'left' }}>Password</th>
-                      <th style={{ padding: '12px', textAlign: 'center' }}>
-                         <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                            <button onClick={() => toggleAllStatus(true)} style={{ fontSize: '9px', backgroundColor: '#22c55e', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 4px' }}>ON ALL</button>
-                            <button onClick={() => toggleAllStatus(false)} style={{ fontSize: '9px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 4px' }}>OFF ALL</button>
-                         </div>
-                      </th>
+                      <th style={{ padding: '12px', textAlign: 'center' }}>Status</th>
                       <th style={{ padding: '12px', textAlign: 'center' }}>Sesi</th>
                       <th style={{ padding: '12px', textAlign: 'center' }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {students.map((s, index) => (
-                      <tr key={s.no_peserta} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }} onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')} onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                      <tr key={s.no_peserta} 
+                          style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }} 
+                          // HIGHLIGHT LEBIH KONTRAS (#e2e8f0)
+                          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#e2e8f0')} 
+                          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
                         <td style={{ padding: '12px', textAlign: 'center' }}>{index + 1}</td>
                         <td style={{ padding: '12px' }}>{s.no_peserta}</td>
                         <td style={{ padding: '12px' }}>{s.nama_lengkap}</td>
@@ -286,7 +281,7 @@ export default function DashboardPage() {
                         <td style={{ padding: '12px', textAlign: 'center' }}>{s.kelas}</td>
                         <td style={{ padding: '12px', color: '#3b82f6', fontWeight: 'bold' }}>{s.password}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
-                          <button onClick={() => toggleStatus(s.no_peserta, s.status)} style={{ backgroundColor: s.status ? '#22c55e' : '#94a3b8', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '10px' }}>{s.status ? 'ON' : 'OFF'}</button>
+                          <button onClick={() => toggleStatus(s.no_peserta, s.status)} style={{ backgroundColor: s.status ? '#22c55e' : '#94a3b8', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}>{s.status ? 'ON' : 'OFF'}</button>
                         </td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>{s.sesi}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
