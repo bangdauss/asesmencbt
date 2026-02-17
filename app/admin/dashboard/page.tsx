@@ -37,14 +37,37 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchData() }, [])
 
-  // --- LOGIK GENERATE PASSWORD ---
-  const handleGeneratePassword = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  // --- LOGIK GENERATE PASSWORD (7 KARAKTER: ABCabc123*) ---
+  const generateSecurePassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
     for (let i = 0; i < 6; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    setFormSiswa({ ...formSiswa, password: result });
+    return result + '*'; // Total 7 karakter diakhiri bintang
+  }
+
+  const handleGeneratePassword = () => {
+    setFormSiswa({ ...formSiswa, password: generateSecurePassword() });
+  }
+
+  const generateAllPasswords = async () => {
+    if (confirm("Generate password baru untuk SEMUA siswa? Password lama akan diganti dengan format 7 karakter (akhiran *).")) {
+      const { data: allStudents } = await supabase.from('data_siswa').select('no_peserta');
+
+      if (allStudents) {
+        const updates = allStudents.map(siswa => {
+          return supabase
+            .from('data_siswa')
+            .update({ password: generateSecurePassword() })
+            .eq('no_peserta', siswa.no_peserta);
+        });
+
+        await Promise.all(updates);
+        alert("Berhasil memperbarui semua password siswa!");
+        fetchData();
+      }
+    }
   }
 
   // --- LOGIK DATA PENGGUNA ---
@@ -127,7 +150,6 @@ export default function DashboardPage() {
         </div>
         
         <div style={{ padding: '25px' }}>
-          {/* DASHBOARD */}
           {activeMenu === 'dashboard' && (
              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
@@ -141,7 +163,6 @@ export default function DashboardPage() {
              </div>
           )}
 
-          {/* DATA PENGGUNA */}
           {activeMenu === 'user' && (
             <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
@@ -174,12 +195,17 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* DATA SISWA */}
           {activeMenu === 'siswa' && (
             <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
               <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ margin: 0 }}>Data Siswa (Total: {students.length})</h3>
                 <div style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                      onClick={generateAllPasswords} 
+                      style={{ backgroundColor: '#f59e0b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold' }}
+                    >
+                      🎲 Generate Semua Password
+                    </button>
                     <button onClick={() => { setIsEditSiswa(false); setFormSiswa({no_peserta:'', nama_lengkap:'', jk:'', kelas:'', password:'', sesi:'', status:false}); setShowModalSiswa(true); }} style={{ backgroundColor: '#1e293b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
                         <span style={{ fontSize: '18px' }}>+ Tambah Siswa</span>
                     </button>
