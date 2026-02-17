@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const [users, setUsers] = useState<any[]>([])
   const [students, setStudents] = useState<any[]>([])
   
-  // STATE UNTUK MODAL SISWA (Digunakan untuk Edit saja)
+  // STATE UNTUK MODAL SISWA (Hanya untuk Edit)
   const [showModalSiswa, setShowModalSiswa] = useState(false)
   const [isEditSiswa, setIsEditSiswa] = useState(false)
   const [formSiswa, setFormSiswa] = useState({
@@ -45,7 +45,7 @@ export default function DashboardPage() {
     for (let i = 0; i < 6; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return result + '*';
+    return result + '*'; 
   }
 
   const handleGeneratePassword = () => {
@@ -53,7 +53,7 @@ export default function DashboardPage() {
   }
 
   const generateAllPasswords = async () => {
-    if (confirm("Generate password baru untuk SEMUA siswa?")) {
+    if (confirm("Generate password baru untuk SEMUA siswa? Password lama akan diganti.")) {
       const { data: allStudents } = await supabase.from('data_siswa').select('no_peserta');
       if (allStudents) {
         const updates = allStudents.map(siswa => {
@@ -69,23 +69,22 @@ export default function DashboardPage() {
     }
   }
 
-  // --- LOGIK IMPORT (HAPUS DATA LAMA & GANTI BARU) ---
+  // --- LOGIK IMPORT & TEMPLATE (HAPUS DATA LAMA & GANTI BARU) ---
   const downloadTemplate = () => {
     const template = [
-      { no_peserta: '1001', nama_lengkap: 'Ahmad Siswa', jk: 'L', kelas: '6A', password: 'auto', sesi: '1' },
-      { no_peserta: '1002', nama_lengkap: 'Siti Siswi', jk: 'P', kelas: '6B', password: 'auto', sesi: '2' }
+      { no_peserta: '1001', nama_lengkap: 'Nama Siswa', jk: 'L', kelas: '6A', password: 'auto', sesi: '1' }
     ];
     const ws = XLSX.utils.json_to_sheet(template);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template_Siswa");
-    XLSX.writeFile(wb, "template_import_siswa.xlsx");
+    XLSX.writeFile(wb, "template_asesmen.xlsx");
   };
 
   const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!confirm("PERINGATAN: Seluruh data siswa lama akan DIHAPUS dan diganti dengan data baru. Lanjutkan?")) {
+    if (!confirm("Peringatan: SELURUH DATA LAMA AKAN DIHAPUS. Lanjutkan import data baru?")) {
       e.target.value = '';
       return;
     }
@@ -109,12 +108,11 @@ export default function DashboardPage() {
       }));
 
       try {
-        // Hapus semua data lama
+        // Hapus data lama secara massal
         await supabase.from('data_siswa').delete().neq('no_peserta', '0');
         
-        // Masukkan data baru
+        // Masukkan data baru hasil import
         const { error } = await supabase.from('data_siswa').insert(formattedData);
-        
         if (error) throw error;
 
         alert(`Berhasil! Data lama dihapus dan ${data.length} data baru telah di-import.`);
@@ -148,7 +146,7 @@ export default function DashboardPage() {
   }
 
   const deleteUser = async (id: number, username: string) => {
-    if (confirm(`Hapus pengguna: ${username}?`)) {
+    if (confirm(`Hapus admin: ${username}?`)) {
       await supabase.from('admin_user').delete().eq('id', id)
       fetchData()
     }
@@ -187,9 +185,7 @@ export default function DashboardPage() {
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Arial, sans-serif', backgroundColor: '#f1f5f9' }}>
       {/* SIDEBAR */}
       <div style={{ width: '260px', backgroundColor: '#1e293b', color: '#cbd5e1' }}>
-        <div style={{ padding: '20px', backgroundColor: '#0f172a', color: 'white', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            🚀 e-Asesmen
-        </div>
+        <div style={{ padding: '20px', backgroundColor: '#0f172a', color: 'white', fontWeight: 'bold' }}>🚀 e-Asesmen</div>
         <nav style={{ marginTop: '10px' }}>
           <div onClick={() => setActiveMenu('dashboard')} style={{ padding: '15px 20px', cursor: 'pointer', backgroundColor: activeMenu === 'dashboard' ? '#334155' : 'transparent', color: 'white' }}>📊 Dashboard</div>
           <div onClick={() => setActiveMenu('user')} style={{ padding: '15px 20px', cursor: 'pointer', backgroundColor: activeMenu === 'user' ? '#334155' : 'transparent', color: 'white' }}>👤 Data Pengguna</div>
@@ -207,7 +203,7 @@ export default function DashboardPage() {
           {activeMenu === 'dashboard' && (
              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                  <h4 style={{ color: '#64748b', margin: '0 0 10px 0' }}>Total Pengguna</h4>
+                  <h4 style={{ color: '#64748b', margin: '0 0 10px 0' }}>Total Admin</h4>
                   <h2 style={{ margin: 0, fontSize: '28px' }}>{users.length}</h2>
                 </div>
                 <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
@@ -220,7 +216,7 @@ export default function DashboardPage() {
           {activeMenu === 'user' && (
             <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                  <h3 style={{ margin: 0 }}>Data Pengguna</h3>
+                  <h3 style={{ margin: 0 }}>Data Admin</h3>
                   <button onClick={() => { setIsEditUser(false); setFormUser({id:null, username:'', nama_lengkap:'', password:''}); setShowModalUser(true); }} style={{ backgroundColor: '#1e293b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>+ Tambah Admin</button>
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -233,7 +229,7 @@ export default function DashboardPage() {
                     </thead>
                     <tbody>
                         {users.map(u => (
-                            <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }} onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')} onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
                                 <td style={{ padding: '12px' }}>{u.username}</td>
                                 <td style={{ padding: '12px' }}>{u.nama_lengkap}</td>
                                 <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -282,13 +278,13 @@ export default function DashboardPage() {
                   </thead>
                   <tbody>
                     {students.map((s, index) => (
-                      <tr key={s.no_peserta} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr key={s.no_peserta} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }} onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')} onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
                         <td style={{ padding: '12px', textAlign: 'center' }}>{index + 1}</td>
                         <td style={{ padding: '12px' }}>{s.no_peserta}</td>
                         <td style={{ padding: '12px' }}>{s.nama_lengkap}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>{s.jk}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>{s.kelas}</td>
-                        <td style={{ padding: '12px', color: '#3b82f6' }}>{s.password}</td>
+                        <td style={{ padding: '12px', color: '#3b82f6', fontWeight: 'bold' }}>{s.password}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <button onClick={() => toggleStatus(s.no_peserta, s.status)} style={{ backgroundColor: s.status ? '#22c55e' : '#94a3b8', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '10px' }}>{s.status ? 'ON' : 'OFF'}</button>
                         </td>
@@ -313,7 +309,10 @@ export default function DashboardPage() {
           <div style={{ backgroundColor: 'white', padding: '30px', width: '400px', borderRadius: '12px' }}>
             <h3>Edit Data Siswa</h3>
             <form onSubmit={handleSiswaSubmit}>
-              <input value={formSiswa.no_peserta} disabled style={{ width: '100%', padding: '10px', marginBottom: '10px', backgroundColor: '#eee' }} />
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 'bold' }}>No Peserta</label>
+                <input value={formSiswa.no_peserta} disabled style={{ width: '100%', padding: '10px', backgroundColor: '#f1f5f9' }} />
+              </div>
               <input placeholder="Nama" value={formSiswa.nama_lengkap} onChange={(e) => setFormSiswa({...formSiswa, nama_lengkap: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '10px' }} required />
               <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
                 <select value={formSiswa.jk} onChange={(e) => setFormSiswa({...formSiswa, jk: e.target.value})} style={{ flex: 1, padding: '10px' }}>
@@ -327,14 +326,14 @@ export default function DashboardPage() {
                 <button type="button" onClick={handleGeneratePassword} style={{ padding: '10px' }}>🔑</button>
               </div>
               <input type="number" placeholder="Sesi" value={formSiswa.sesi} onChange={(e) => setFormSiswa({...formSiswa, sesi: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '20px' }} />
-              <button type="submit" style={{ width: '100%', padding: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px' }}>Update</button>
-              <button type="button" onClick={() => setShowModalSiswa(false)} style={{ width: '100%', marginTop: '10px', border: 'none', background: 'none' }}>Batal</button>
+              <button type="submit" style={{ width: '100%', padding: '12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold' }}>Update Data</button>
+              <button type="button" onClick={() => setShowModalSiswa(false)} style={{ width: '100%', marginTop: '10px', border: 'none', background: 'none', cursor: 'pointer' }}>Batal</button>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL ADMIN (Tetap sama) */}
+      {/* MODAL ADMIN */}
       {showModalUser && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ backgroundColor: 'white', padding: '30px', width: '350px', borderRadius: '12px' }}>
@@ -343,8 +342,8 @@ export default function DashboardPage() {
               <input placeholder="Username" value={formUser.username} onChange={(e) => setFormUser({...formUser, username: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '10px' }} required />
               <input placeholder="Nama Lengkap" value={formUser.nama_lengkap} onChange={(e) => setFormUser({...formUser, nama_lengkap: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '10px' }} required />
               <input placeholder="Password" value={formUser.password} onChange={(e) => setFormUser({...formUser, password: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '20px' }} required />
-              <button type="submit" style={{ width: '100%', padding: '10px', backgroundColor: '#1e293b', color: 'white', border: 'none', borderRadius: '6px' }}>Simpan</button>
-              <button type="button" onClick={() => setShowModalUser(false)} style={{ width: '100%', marginTop: '10px', border: 'none', background: 'none' }}>Batal</button>
+              <button type="submit" style={{ width: '100%', padding: '12px', backgroundColor: '#1e293b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold' }}>Simpan Admin</button>
+              <button type="button" onClick={() => setShowModalUser(false)} style={{ width: '100%', marginTop: '10px', border: 'none', background: 'none', cursor: 'pointer' }}>Batal</button>
             </form>
           </div>
         </div>
