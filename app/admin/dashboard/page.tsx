@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import * as XLSX from 'xlsx'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,7 +14,7 @@ export default function DashboardPage() {
   const [users, setUsers] = useState<any[]>([])
   const [students, setStudents] = useState<any[]>([])
   
-  // STATE UNTUK MODAL SISWA
+  // STATE UNTUK MODAL SISWA (Tetap ada untuk fitur Edit)
   const [showModalSiswa, setShowModalSiswa] = useState(false)
   const [isEditSiswa, setIsEditSiswa] = useState(false)
   const [formSiswa, setFormSiswa] = useState({
@@ -37,14 +38,14 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchData() }, [])
 
-  // --- LOGIK GENERATE PASSWORD (7 KARAKTER: ABCabc123*) ---
+  // --- LOGIK GENERATE PASSWORD ---
   const generateSecurePassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
     for (let i = 0; i < 6; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return result + '*'; // Total 7 karakter diakhiri bintang
+    return result + '*';
   }
 
   const handleGeneratePassword = () => {
@@ -52,9 +53,8 @@ export default function DashboardPage() {
   }
 
   const generateAllPasswords = async () => {
-    if (confirm("Generate password baru untuk SEMUA siswa? Password lama akan diganti dengan format 7 karakter (akhiran *).")) {
+    if (confirm("Generate password baru untuk SEMUA siswa?")) {
       const { data: allStudents } = await supabase.from('data_siswa').select('no_peserta');
-
       if (allStudents) {
         const updates = allStudents.map(siswa => {
           return supabase
@@ -62,13 +62,60 @@ export default function DashboardPage() {
             .update({ password: generateSecurePassword() })
             .eq('no_peserta', siswa.no_peserta);
         });
-
         await Promise.all(updates);
         alert("Berhasil memperbarui semua password siswa!");
         fetchData();
       }
     }
   }
+
+  // --- LOGIK IMPORT & DOWNLOAD TEMPLATE ---
+  const downloadTemplate = () => {
+    const template = [
+      { no_peserta: '1001', nama_lengkap: 'Ahmad Siswa', jk: 'L', kelas: '6A', password: 'auto', sesi: '1' },
+      { no_peserta: '1002', nama_lengkap: 'Siti Siswi', jk: 'P', kelas: '6B', password: 'auto', sesi: '2' }
+    ];
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template_Siswa");
+    XLSX.writeFile(wb, "template_import_siswa.xlsx");
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const bstr = evt.target?.result;
+      const wb = XLSX.read(bstr, { type: 'binary' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const data: any[] = XLSX.utils.sheet_to_json(ws);
+
+      const formattedData = data.map(item => ({
+        no_peserta: String(item.no_peserta),
+        nama_lengkap: item.nama_lengkap,
+        jk: item.jk,
+        kelas: String(item.kelas),
+        password: item.password === 'auto' ? generateSecurePassword() : String(item.password),
+        sesi: item.sesi,
+        status: false
+      }));
+
+      const { error } = await supabase.from('data_siswa').insert(formattedData);
+      
+      if (error) {
+        alert("Error Import: Pastikan No Peserta tidak ada yang ganda di database.");
+        console.error(error);
+      } else {
+        alert(`Berhasil mengimport ${data.length} siswa!`);
+        fetchData();
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = ''; // Reset input file
+  };
 
   // --- LOGIK DATA PENGGUNA ---
   const handleUserSubmit = async (e: React.FormEvent) => {
@@ -110,8 +157,6 @@ export default function DashboardPage() {
     e.preventDefault()
     if (isEditSiswa) {
       await supabase.from('data_siswa').update(formSiswa).eq('no_peserta', formSiswa.no_peserta)
-    } else {
-      await supabase.from('data_siswa').insert([formSiswa])
     }
     setShowModalSiswa(false)
     fetchData()
@@ -201,13 +246,22 @@ export default function DashboardPage() {
                 <h3 style={{ margin: 0 }}>Data Siswa (Total: {students.length})</h3>
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <button 
-                      onClick={generateAllPasswords} 
-                      style={{ backgroundColor: '#f59e0b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold' }}
+                      onClick={downloadTemplate}
+                      style={{ backgroundColor: '#64748b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}
                     >
-                      🎲 Generate Semua Password
+                      📥 Template
                     </button>
-                    <button onClick={() => { setIsEditSiswa(false); setFormSiswa({no_peserta:'', nama_lengkap:'', jk:'', kelas:'', password:'', sesi:'', status:false}); setShowModalSiswa(true); }} style={{ backgroundColor: '#1e293b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <span style={{ fontSize: '18px' }}>+ Tambah Siswa</span>
+
+                    <label style={{ backgroundColor: '#1e293b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      📁 Import Excel
+                      <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} style={{ display: 'none' }} />
+                    </label>
+
+                    <button 
+                      onClick={generateAllPasswords} 
+                      style={{ backgroundColor: '#f59e0b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold', fontSize: '13px' }}
+                    >
+                      🎲 Generate Password
                     </button>
                 </div>
               </div>
@@ -292,15 +346,15 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* MODAL FORM SISWA */}
+      {/* MODAL FORM SISWA (Khusus untuk Edit) */}
       {showModalSiswa && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)' }}>
           <div style={{ backgroundColor: 'white', padding: '30px', width: '450px', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b' }}>{isEditSiswa ? 'Edit Data Siswa' : 'Tambah Siswa Baru'}</h3>
+            <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b' }}>Edit Data Siswa</h3>
             <form onSubmit={handleSiswaSubmit}>
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#64748b', marginBottom: '5px' }}>Nomor Peserta</label>
-                <input placeholder="Contoh: 123" value={formSiswa.no_peserta} disabled={isEditSiswa} onChange={(e) => setFormSiswa({...formSiswa, no_peserta: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} required />
+                <input placeholder="Contoh: 123" value={formSiswa.no_peserta} disabled={true} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }} required />
               </div>
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#64748b', marginBottom: '5px' }}>Nama Lengkap</label>
@@ -333,7 +387,7 @@ export default function DashboardPage() {
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <button type="submit" style={{ backgroundColor: '#3b82f6', color: 'white', width: '100%', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Simpan Data</button>
+                <button type="submit" style={{ backgroundColor: '#3b82f6', color: 'white', width: '100%', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Update Data</button>
                 <button type="button" onClick={() => setShowModalSiswa(false)} style={{ width: '100%', padding: '10px', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>Batal</button>
               </div>
             </form>
