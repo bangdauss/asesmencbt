@@ -1,72 +1,66 @@
 'use client'
 
-import { useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import Link from 'next/link'
 
-// Inisialisasi koneksi ke Supabase
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
-export default function LoginPage() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-
-    // Mengecek data ke tabel admin_user di Supabase
-    const { data, error } = await supabase
-      .from('admin_user')
-      .select('*')
-      .eq('username', username)
-      .eq('password', password)
-      .single()
-
-    if (error || !data) {
-      alert('Username atau Password salah!')
-    } else {
-      alert(`Selamat Datang, ${data.nama_lengkap}!`)
-      // Nanti di sini kita arahkan ke dashboard
-    }
-    setLoading(false)
-  }
-
+export default function LandingPage() {
   return (
-    <div style={{ backgroundColor: '#334155', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
-      <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '15px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-        <h1 style={{ color: '#1e293b', marginBottom: '10px', fontSize: '28px' }}>Admin User</h1>
-        <p style={{ color: '#64748b', marginBottom: '30px' }}>Asesmen CBT by Dausain Edu</p>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
+      
+      {/* Container Utama */}
+      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
         
-        <form onSubmit={handleLogin}>
-          <input
-            type="text"
-            placeholder="Username Admin"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ width: '100%', padding: '12px', marginBottom: '25px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }}
-            required
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            style={{ width: '100%', padding: '12px', backgroundColor: '#22c55e', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
+        {/* KARTU ADMIN GURU */}
+        <div className="bg-white rounded-[2rem] p-10 shadow-xl shadow-slate-200/60 flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl group border border-slate-100">
+          <div className="w-24 h-24 bg-rose-50 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
+            {/* Icon Admin */}
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04m12.733 12.87c-.783.57-1.838.888-2.914.888-1.076 0-2.131-.318-2.914-.888m12.733-12.87a11.956 11.956 0 01-12.733 0m12.733 0a11.956 11.956 0 010 12.87m-12.733-12.87a11.956 11.956 0 000 12.87" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold text-slate-800 mb-4">Admin Guru</h2>
+          <p className="text-slate-500 leading-relaxed mb-10 text-lg">
+            Manajemen data peserta didik, pembuatan bank soal, & monitoring real-time.
+          </p>
+          <Link 
+            href="/admin/login" 
+            className="mt-auto w-full py-4 px-6 border-2 border-rose-500 text-rose-500 font-bold rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 hover:bg-rose-500 hover:text-white"
           >
-            {loading ? 'MENGECEK...' : 'MASUK →'}
+            Masuk Portal <span className="text-xl">→</span>
+          </Link>
+        </div>
+
+        {/* KARTU PESERTA DIDIK */}
+        <div className="bg-white rounded-[2rem] p-10 shadow-xl shadow-slate-200/60 flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl group border border-slate-100">
+          <div className="w-24 h-24 bg-amber-50 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
+            {/* Icon Siswa */}
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="12 14l9-5-9-5-9 5 9 5z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold text-slate-800 mb-4">Peserta Didik</h2>
+          <p className="text-slate-500 leading-relaxed mb-10 text-lg">
+            Akses ujian online & lihat hasil evaluasi mandiri secara cepat dan akurat.
+          </p>
+          <button 
+            className="mt-auto w-full py-4 px-6 border-2 border-amber-500 text-amber-500 font-bold rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 hover:bg-amber-500 hover:text-white"
+            onClick={() => alert('Halaman login siswa sedang dikembangkan!')}
+          >
+            Masuk Portal <span className="text-xl">→</span>
           </button>
-        </form>
+        </div>
+
       </div>
+
+      {/* Footer / Copyright */}
+      <footer className="mt-16 text-slate-400 font-medium">
+        Tahun Pelajaran 2025/2026 © e-Asesmen
+      </footer>
+
+      {/* Background Decor (Opsional - biar mirip gambar ada bayangan halus di belakang) */}
+      <div className="fixed -z-10 top-0 left-1/4 w-96 h-96 bg-blue-50/50 rounded-full blur-3xl opacity-50"></div>
+      <div className="fixed -z-10 bottom-0 right-1/4 w-96 h-96 bg-rose-50/50 rounded-full blur-3xl opacity-50"></div>
+
     </div>
   )
 }
