@@ -22,12 +22,30 @@ export default function DashboardPage() {
   const fetchData = async () => {
     const { data: userData } = await supabase.from('admin_user').select('*').order('id', { ascending: true })
     if (userData) setUsers(userData)
-    
     const { data: studentData } = await supabase.from('data_siswa').select('*').order('no_peserta', { ascending: true })
     if (studentData) setStudents(studentData)
   }
 
   useEffect(() => { fetchData() }, [])
+
+  // FUNGSI GENERATE PASSWORD ACAK (6 Karakter)
+  const generateAllPasswords = async () => {
+    if (confirm("Generate password acak untuk SEMUA siswa? Password lama akan terhapus.")) {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Tanpa I, O, 0, 1 agar tidak bingung
+      
+      const newStudents = await Promise.all(students.map(async (s) => {
+        let newPass = "";
+        for (let i = 0; i < 6; i++) {
+          newPass += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        await supabase.from('data_siswa').update({ password: newPass }).eq('no_peserta', s.no_peserta);
+        return { ...s, password: newPass };
+      }));
+      
+      setStudents(newStudents);
+      alert("Berhasil menggenerate password baru untuk semua siswa!");
+    }
+  }
 
   const toggleAllStatus = async (targetStatus: boolean) => {
     const confirmMsg = targetStatus ? "Aktifkan SEMUA siswa?" : "Nonaktifkan SEMUA siswa?";
@@ -76,24 +94,16 @@ export default function DashboardPage() {
         <div style={{ height: '60px', backgroundColor: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', padding: '0 25px' }}>Administrator (Admin)</div>
         <div style={{ padding: '25px' }}>
           
-          {activeMenu === 'dashboard' && (
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', borderLeft: '5px solid #3b82f6' }}>
-                  <h4 style={{ margin: 0, color: '#64748b' }}>Total Pengguna</h4>
-                  <h2 style={{ margin: 0 }}>{users.length}</h2>
-                </div>
-                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', borderLeft: '5px solid #22c55e' }}>
-                  <h4 style={{ margin: 0, color: '#64748b' }}>Total Siswa</h4>
-                  <h2 style={{ margin: 0 }}>{students.length}</h2>
-                </div>
-             </div>
-          )}
-
           {activeMenu === 'siswa' && (
             <div style={{ backgroundColor: 'white', borderRadius: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-              <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0' }}>
-                <h3 style={{ margin: 0 }}>DATA SISWA</h3>
-                <button onClick={() => { setIsEditSiswa(false); setFormSiswa({no_peserta:'', nama_lengkap:'', jk:'', kelas:'', password:'', sesi:'1', status:false}); setShowModalSiswa(true); }} style={{ backgroundColor: '#1e293b', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>+ Tambah Siswa</button>
+              <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
+                <h3 style={{ margin: 0 }}>DATA SISWA (Total: {students.length})</h3>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {/* IKON GENERATE PASSWORD */}
+                  <button title="Generate Password Acak" onClick={generateAllPasswords} style={{ backgroundColor: '#f59e0b', color: 'white', padding: '8px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '18px' }}>🔑</button>
+                  {/* IKON TAMBAH SISWA */}
+                  <button title="Tambah Siswa Baru" onClick={() => { setIsEditSiswa(false); setFormSiswa({no_peserta:'', nama_lengkap:'', jk:'', kelas:'', password:'', sesi:'1', status:false}); setShowModalSiswa(true); }} style={{ backgroundColor: '#1e293b', color: 'white', padding: '8px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '18px' }}>👨‍🎓</button>
+                </div>
               </div>
               <div style={{ padding: '20px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
@@ -145,7 +155,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* MODAL SISWA (INPUT SESI HANYA MUNCUL SAAT EDIT) */}
+      {/* MODAL SISWA */}
       {showModalSiswa && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ backgroundColor: 'white', padding: '25px', width: '450px', borderRadius: '8px' }}>
@@ -153,10 +163,8 @@ export default function DashboardPage() {
             <form onSubmit={handleSiswaSubmit}>
               <label style={{ fontSize: '12px', fontWeight: 'bold' }}>No Peserta</label>
               <input value={formSiswa.no_peserta} disabled={isEditSiswa} onChange={(e) => setFormSiswa({...formSiswa, no_peserta: e.target.value})} style={{ width: '100%', marginBottom: '10px', padding: '8px', border: '1px solid #ccc' }} required />
-              
               <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Nama Lengkap</label>
               <input value={formSiswa.nama_lengkap} onChange={(e) => setFormSiswa({...formSiswa, nama_lengkap: e.target.value})} style={{ width: '100%', marginBottom: '10px', padding: '8px', border: '1px solid #ccc' }} required />
-              
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '12px', fontWeight: 'bold' }}>L/P</label>
@@ -167,18 +175,14 @@ export default function DashboardPage() {
                   <input maxLength={2} value={formSiswa.kelas} onChange={(e) => setFormSiswa({...formSiswa, kelas: e.target.value.toUpperCase()})} style={{ width: '100%', marginBottom: '10px', padding: '8px', border: '1px solid #ccc' }} required />
                 </div>
               </div>
-
               <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Password</label>
               <input value={formSiswa.password} onChange={(e) => setFormSiswa({...formSiswa, password: e.target.value})} style={{ width: '100%', marginBottom: isEditSiswa ? '10px' : '20px', padding: '8px', border: '1px solid #ccc' }} required />
-              
-              {/* SESI HANYA TAMPIL SAAT EDIT AGAR TAMBAH CEPAT */}
               {isEditSiswa && (
                 <>
                   <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Sesi</label>
                   <input value={formSiswa.sesi} onChange={(e) => setFormSiswa({...formSiswa, sesi: e.target.value})} style={{ width: '100%', marginBottom: '20px', padding: '8px', border: '1px solid #ccc' }} required />
                 </>
               )}
-              
               <button type="submit" style={{ backgroundColor: '#3b82f6', color: 'white', width: '100%', padding: '12px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Simpan Data Siswa</button>
               <button type="button" onClick={() => setShowModalSiswa(false)} style={{ width: '100%', marginTop: '10px', padding: '10px', background: 'none', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}>Batal</button>
             </form>
