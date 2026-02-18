@@ -424,7 +424,30 @@ export default function DashboardPage() {
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                   <thead style={{ backgroundColor: '#f8fafc' }}><tr style={{ textAlign: 'left' }}><th style={{ padding: '10px' }}>Kode</th><th style={{ padding: '10px' }}>Asesmen</th><th style={{ padding: '10px' }}>Status</th></tr></thead>
-                  <tbody>{asesmens.map(a => (<tr key={a.id} style={{ borderBottom: '1px solid #eee' }}><td style={{ padding: '10px' }}><code>{a.kode_asesmen}</code></td><td style={{ padding: '10px' }}>{a.nama_asesmen}</td><td style={{ padding: '10px' }}><button onClick={() => toggleAsesmenStatus(a.id, a.status)} style={{ backgroundColor: a.status ? '#22c55e' : '#94a3b8', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px' }}>{a.status ? 'AKTIF' : 'OFF'}</button></td></tr>))}</tbody>
+                  <tbody>{asesmens.map(a => (
+  <tr key={a.id} style={{ borderBottom: '1px solid #eee' }}>
+    <td style={{ padding: '10px' }}><code>{a.kode_asesmen}</code></td>
+    <td style={{ padding: '10px' }}>{a.nama_asesmen}</td>
+    <td style={{ padding: '10px' }}>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        {/* Tombol Status */}
+        <button onClick={() => toggleAsesmenStatus(a.id, a.status)} style={{ backgroundColor: a.status ? '#22c55e' : '#94a3b8', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px' }}>
+          {a.status ? 'AKTIF' : 'OFF'}
+        </button>
+        
+        {/* Tombol Edit Kuning */}
+        <button onClick={() => editAsesmen(a)} style={{ backgroundColor: '#eab308', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px' }}>
+          Edit
+        </button>
+
+        {/* Tombol Hapus Merah */}
+        <button onClick={() => deleteAsesmen(a.id)} style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px' }}>
+          Hapus
+        </button>
+      </div>
+    </td>
+  </tr>
+))}</tbody>
                 </table>
               </div>
             </div>
