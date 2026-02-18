@@ -263,6 +263,25 @@ export default function DashboardPage() {
     await supabase.from('data_asesmen').update({ status: !current }).eq('id', id); fetchData();
   }
 
+const editAsesmen = (asesmen: any) => {
+  setFormAsesmen({
+    id: asesmen.id,
+    id_mapel: String(asesmen.id_mapel),
+    kode_asesmen: asesmen.kode_asesmen,
+    nama_asesmen: asesmen.nama_asesmen,
+    status: asesmen.status
+  })
+  setShowModalAsesmen(true)
+}
+
+const deleteAsesmen = async (id: number) => {
+  if (confirm("Hapus asesmen ini?")) {
+    await supabase.from('data_asesmen').delete().eq('id', id)
+    fetchData()
+  }
+}
+
+
   const fetchSoal = async (id: string) => {
     const { data } = await supabase.from('bank_soal').select('*').eq('id_asesmen', id).order('id', { ascending: true });
     if (data) setSoalList(data);
@@ -548,7 +567,7 @@ export default function DashboardPage() {
       {showModalAsesmen && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110 }}>
           <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '400px' }}>
-            <h3>Buat Wadah Asesmen</h3>
+            <h3>{formAsesmen.id ? 'Edit Asesmen' : 'Buat Wadah Asesmen'}</h3>
             <select value={formAsesmen.id_mapel} onChange={(e) => setFormAsesmen({...formAsesmen, id_mapel: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '10px', border: '1px solid #ddd' }}>
               <option value="">-- Pilih Mata Pelajaran --</option>
               {mapels.map(m => <option key={m.id} value={m.id}>{m.nama_mapel}</option>)}
