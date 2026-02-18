@@ -209,9 +209,34 @@ export default function DashboardPage() {
 
   // --- LOGIKA FITUR BARU: MASTER & BANK SOAL ---
   const handleMapelSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); 
-    await supabase.from('data_mapel').insert([{ nama_mapel: formMapel.nama_mapel, kode_mapel: formMapel.kode_mapel.toUpperCase() }]);
-    setShowModalMapel(false); setFormMapel({id:null, nama_mapel:'', kode_mapel:''}); fetchData();
+    e.preventDefault();
+    // 1. Siapkan data yang mau dikirim
+    const payload = { 
+      nama_mapel: formMapel.nama_mapel, 
+      kode_mapel: formMapel.kode_mapel.toUpperCase() 
+    };
+    
+    // 2. CEK: Kalau ada ID, berarti kita sedang EDIT (Update)
+    //    Kalau ID kosong, berarti buat BARU (Insert)
+    if (formMapel.id) {
+      const { error } = await supabase
+        .from('data_mapel')
+        .update(payload)
+        .eq('id', formMapel.id); // Cari berdasarkan ID-nya
+      
+      if (error) alert("Gagal update: " + error.message);
+    } else {
+      const { error } = await supabase
+        .from('data_mapel')
+        .insert([payload]);
+      
+      if (error) alert("Gagal tambah: " + error.message);
+    }
+    
+    // 3. Bereskan modal dan refresh data
+    setShowModalMapel(false); 
+    setFormMapel({id:null, nama_mapel:'', kode_mapel:''}); 
+    fetchData();
   }
 
  const handleAsesmenSubmit = async (e: React.FormEvent) => {
