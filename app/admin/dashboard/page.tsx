@@ -606,7 +606,21 @@ const deleteAsesmen = async (id: number) => {
               <option value="">-- Pilih Mata Pelajaran --</option>
               {mapels.map(m => <option key={m.id} value={m.id}>{m.nama_mapel}</option>)}
             </select>
-            <input placeholder="Kode Asesmen" value={formAsesmen.kode_asesmen} onChange={(e) => setFormAsesmen({...formAsesmen, kode_asesmen: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '10px', marginBottom: '10px', border: '1px solid #ddd' }} />
+            <input
+  placeholder="Kode Asesmen"
+  value={formAsesmen.kode_asesmen}
+  disabled={!!formAsesmen.id}
+  onChange={(e) =>
+    setFormAsesmen({
+      ...formAsesmen,
+      kode_asesmen: e.target.value.toUpperCase()
+    })
+  }
+  style={{
+    width: '100%',
+    padding: '10px',
+    marginBottom: '10px',
+
             <input placeholder="Nama Asesmen" value={formAsesmen.nama_asesmen} onChange={(e) => setFormAsesmen({...formAsesmen, nama_asesmen: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '20px', border: '1px solid #ddd' }} />
             <button onClick={handleAsesmenSubmit} style={{ width: '100%', padding: '12px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '6px' }}>Buat</button>
             <button onClick={() => setShowModalAsesmen(false)} style={{ width: '100%', marginTop: '10px', background: 'none', border: 'none' }}>Batal</button>
