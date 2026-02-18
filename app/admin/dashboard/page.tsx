@@ -14,9 +14,13 @@ export default function DashboardPage() {
   const [users, setUsers] = useState<any[]>([])
   const [students, setStudents] = useState<any[]>([])
   
+  // STATE PENGATURAN SEKOLAH (BARU)
+  const [config, setConfig] = useState({ npsn: '', nama_sekolah: '' })
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true)
+
   // STATE MODAL SISWA
   const [showModalSiswa, setShowModalSiswa] = useState(false)
-  const [showModalImport, setShowModalImport] = useState(false) // State Pop-up Import
+  const [showModalImport, setShowModalImport] = useState(false) 
   const [isEditSiswa, setIsEditSiswa] = useState(false)
   const [formSiswa, setFormSiswa] = useState({
     no_peserta: '', nama_lengkap: '', jk: '', kelas: '', password: '', sesi: '', status: false
@@ -34,16 +38,40 @@ export default function DashboardPage() {
   })
 
   const fetchData = async () => {
+    // Fetch Data Admin
     const { data: userData } = await supabase.from('admin_user').select('*').order('id', { ascending: true })
     if (userData) setUsers(userData)
     
+    // Fetch Data Siswa
     const { data: studentData } = await supabase.from('data_siswa').select('*').order('no_peserta', { ascending: true })
     if (studentData) setStudents(studentData)
+
+    // Fetch Pengaturan Sekolah (BARU)
+    const { data: configData } = await supabase.from('pengaturan').select('*').maybeSingle()
+    if (configData) {
+      setConfig(configData)
+    }
+    setIsLoadingConfig(false)
   }
 
   useEffect(() => { fetchData() }, [])
 
-  // --- LOGIK GLOBAL STATUS (BARU) ---
+  // --- LOGIK PENGATURAN (BARU) ---
+  const handleUpdateConfig = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const { error } = await supabase
+      .from('pengaturan')
+      .upsert({ npsn: config.npsn, nama_sekolah: config.nama_sekolah }) // Menggunakan upsert karena NPSN adalah PK
+    
+    if (error) {
+      alert("Gagal memperbarui pengaturan: " + error.message)
+    } else {
+      alert("Pengaturan sekolah berhasil disimpan!")
+      fetchData()
+    }
+  }
+
+  // --- LOGIK GLOBAL STATUS ---
   const toggleAllStatus = async (targetStatus: boolean) => {
     const pesan = targetStatus 
       ? "Aktifkan akses ujian untuk SEMUA peserta?" 
@@ -54,7 +82,7 @@ export default function DashboardPage() {
         const { error } = await supabase
           .from('data_siswa')
           .update({ status: targetStatus })
-          .neq('no_peserta', '0'); // Mengupdate semua record
+          .neq('no_peserta', '0'); 
 
         if (error) throw error;
         alert("Berhasil memperbarui status seluruh siswa.");
@@ -65,7 +93,6 @@ export default function DashboardPage() {
     }
   }
 
-  // Cek apakah ada siswa yang sedang ON
   const isAnyStudentActive = students.some(s => s.status === true);
 
   // --- LOGIK GENERATE PASSWORD ---
@@ -216,22 +243,57 @@ export default function DashboardPage() {
       </div>
 
       <div style={{ flex: 1 }}>
+        {/* HEADER DENGAN NAMA SEKOLAH DINAMIS */}
         <div style={{ height: '60px', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 25px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <span style={{ fontWeight: 'bold', color: '#1e293b' }}>Panel Administrator</span>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>2025/2026</span>
+            <span style={{ fontWeight: 'bold', color: '#1e293b' }}>
+                {config.nama_sekolah || "Panel Administrator"}
+            </span>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>{config.npsn ? `NPSN: ${config.npsn}` : "2025/2026"}</span>
         </div>
         
         <div style={{ padding: '25px' }}>
-          {/* DASHBOARD */}
+          {/* DASHBOARD DENGAN PENGATURAN */}
           {activeMenu === 'dashboard' && (
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                  <h4 style={{ color: '#64748b', margin: '0 0 10px 0' }}>Total Admin</h4>
-                  <h2 style={{ margin: 0, fontSize: '28px' }}>{users.length}</h2>
+             <div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px' }}>
+                    <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                    <h4 style={{ color: '#64748b', margin: '0 0 10px 0' }}>Total Admin</h4>
+                    <h2 style={{ margin: 0, fontSize: '28px' }}>{users.length}</h2>
+                    </div>
+                    <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                    <h4 style={{ color: '#64748b', margin: '0 0 10px 0' }}>Total Siswa</h4>
+                    <h2 style={{ margin: 0, fontSize: '28px' }}>{students.length}</h2>
+                    </div>
                 </div>
-                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                  <h4 style={{ color: '#64748b', margin: '0 0 10px 0' }}>Total Siswa</h4>
-                  <h2 style={{ margin: 0, fontSize: '28px' }}>{students.length}</h2>
+
+                {/* FORM PENGATURAN SEKOLAH (BARU) */}
+                <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '20px' }}>⚙️ Pengaturan Sekolah</h3>
+                  <form onSubmit={handleUpdateConfig} style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '500px' }}>
+                    <div>
+                        <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>NPSN</label>
+                        <input 
+                            value={config.npsn} 
+                            onChange={(e) => setConfig({...config, npsn: e.target.value})}
+                            placeholder="Masukkan NPSN"
+                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Nama Sekolah</label>
+                        <input 
+                            value={config.nama_sekolah} 
+                            onChange={(e) => setConfig({...config, nama_sekolah: e.target.value})}
+                            placeholder="Masukkan Nama Sekolah"
+                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                            required
+                        />
+                    </div>
+                    <button type="submit" style={{ backgroundColor: '#1e293b', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                      💾 Simpan Perubahan
+                    </button>
+                  </form>
                 </div>
              </div>
           )}
@@ -289,7 +351,6 @@ export default function DashboardPage() {
                     <th style={{ padding: '12px', textAlign: 'center' }}>L/P</th>
                     <th style={{ padding: '12px', textAlign: 'center' }}>Kelas</th>
                     <th style={{ padding: '12px' }}>Password</th>
-                    {/* HEADER STATUS DENGAN SWITCH GLOBAL (BARU) */}
                     <th style={{ padding: '12px', textAlign: 'center' }}>
                         <div>Status</div>
                         <div style={{ marginTop: '5px' }}>
