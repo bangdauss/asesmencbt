@@ -210,7 +210,7 @@ export default function DashboardPage() {
   // --- LOGIKA FITUR BARU: MASTER & BANK SOAL ---
   const handleMapelSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); 
-    await supabase.from('data_mapel').insert([formMapel]);
+    await supabase.from('data_mapel').insert([{ nama_mapel: formMapel.nama_mapel, kode_mapel: formMapel.kode_mapel.toUpperCase() }]);
     setShowModalMapel(false); setFormMapel({id:null, nama_mapel:'', kode_mapel:''}); fetchData();
   }
 
