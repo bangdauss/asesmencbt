@@ -214,10 +214,24 @@ export default function DashboardPage() {
     setShowModalMapel(false); setFormMapel({id:null, nama_mapel:'', kode_mapel:''}); fetchData();
   }
 
-  const handleAsesmenSubmit = async (e: React.FormEvent) => {
+ const handleAsesmenSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await supabase.from('data_asesmen').insert([{ id_mapel: parseInt(formAsesmen.id_mapel), kode_asesmen: formAsesmen.kode_asesmen, nama_asesmen: formAsesmen.nama_asesmen, status: false }]);
-    setShowModalAsesmen(false); setFormAsesmen({id:null, id_mapel:'', kode_asesmen:'', nama_asesmen:'', status:false}); fetchData();
+    // Kita kirim kolomnya saja, JANGAN kirim ID
+    const { error } = await supabase.from('data_asesmen').insert([{ 
+      id_mapel: parseInt(formAsesmen.id_mapel), 
+      kode_asesmen: formAsesmen.kode_asesmen.toUpperCase(), 
+      nama_asesmen: formAsesmen.nama_asesmen, 
+      status: false 
+    }]);
+
+    if (error) {
+      alert("Gagal Simpan: " + error.message);
+    } else {
+      alert("Asesmen Berhasil Dibuat!");
+      setShowModalAsesmen(false); 
+      setFormAsesmen({id:null, id_mapel:'', kode_asesmen:'', nama_asesmen:'', status:false}); 
+      fetchData();
+    }
   }
 
   const toggleAsesmenStatus = async (id: number, current: boolean) => {
