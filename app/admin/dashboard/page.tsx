@@ -666,10 +666,7 @@ const deleteAsesmen = async (id: number) => {
 >
   Batal
 </button>
-  Batal
-</button>
-
-          </div>
+            </div>
         </div>
       )}
 
