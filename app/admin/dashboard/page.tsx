@@ -56,7 +56,7 @@ export default function DashboardPage() {
     const { data: mapelData } = await supabase.from('data_mapel').select('*').order('nama_mapel', { ascending: true })
     if (mapelData) setMapels(mapelData)
 
-    const { data: asesmenData } = await supabase.from('data_asesmen').select('*, data_mapel(nama_mapel)').order('id', { ascending: false })
+    const { data: asesmenData } = await supabase.from('data_asesmen').select('*').order('id', { ascending: false })
     if (asesmenData) setAsesmens(asesmenData)
 
     setIsLoadingConfig(false)
