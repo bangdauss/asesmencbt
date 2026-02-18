@@ -240,24 +240,58 @@ export default function DashboardPage() {
   }
 
  const handleAsesmenSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Kita kirim kolomnya saja, JANGAN kirim ID
-    const { error } = await supabase.from('data_asesmen').insert([{ 
-      id_mapel: parseInt(formAsesmen.id_mapel), 
-      kode_asesmen: formAsesmen.kode_asesmen.toUpperCase(), 
-      nama_asesmen: formAsesmen.nama_asesmen, 
-      status: false 
-    }]);
+  e.preventDefault();
+
+  if (formAsesmen.id) {
+    // ===== MODE EDIT =====
+    const { error } = await supabase
+      .from('data_asesmen')
+      .update({
+        id_mapel: parseInt(formAsesmen.id_mapel),
+        kode_asesmen: formAsesmen.kode_asesmen.toUpperCase(),
+        nama_asesmen: formAsesmen.nama_asesmen,
+        status: formAsesmen.status
+      })
+      .eq('id', formAsesmen.id);
+
+    if (error) {
+      alert("Gagal Update: " + error.message);
+      return;
+    }
+
+    alert("Asesmen Berhasil Diupdate!");
+
+  } else {
+    // ===== MODE TAMBAH =====
+    const { error } = await supabase
+      .from('data_asesmen')
+      .insert([{
+        id_mapel: parseInt(formAsesmen.id_mapel),
+        kode_asesmen: formAsesmen.kode_asesmen.toUpperCase(),
+        nama_asesmen: formAsesmen.nama_asesmen,
+        status: false
+      }]);
 
     if (error) {
       alert("Gagal Simpan: " + error.message);
-    } else {
-      alert("Asesmen Berhasil Dibuat!");
-      setShowModalAsesmen(false); 
-      setFormAsesmen({id:null, id_mapel:'', kode_asesmen:'', nama_asesmen:'', status:false}); 
-      fetchData();
+      return;
     }
+
+    alert("Asesmen Berhasil Dibuat!");
   }
+
+  setShowModalAsesmen(false);
+  setFormAsesmen({
+    id: null,
+    id_mapel: '',
+    kode_asesmen: '',
+    nama_asesmen: '',
+    status: false
+  });
+
+  fetchData();
+};
+
 
   const toggleAsesmenStatus = async (id: number, current: boolean) => {
     await supabase.from('data_asesmen').update({ status: !current }).eq('id', id); fetchData();
