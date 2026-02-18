@@ -349,7 +349,48 @@ export default function DashboardPage() {
                   <h4 style={{ margin: 0 }}>📚 Mata Pelajaran</h4>
                   <button onClick={() => setShowModalMapel(true)} style={{ backgroundColor: '#1e293b', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px' }}>+ Mapel</button>
                 </div>
-                {mapels.map(m => <div key={m.id} style={{ padding: '10px 0', borderBottom: '1px solid #eee', fontSize: '13px' }}><b>{m.kode_mapel}</b> - {m.nama_mapel}</div>)}
+                {mapels.map(m => (
+  <div
+    key={m.id}
+    style={{
+      padding: '10px 0',
+      borderBottom: '1px solid #eee',
+      fontSize: '13px',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }}
+  >
+    <div>
+      <b>{m.kode_mapel}</b> - {m.nama_mapel}
+    </div>
+
+    <div style={{ display: 'flex', gap: '8px' }}>
+      <button
+        onClick={() => {
+          setFormMapel(m)
+          setShowModalMapel(true)
+        }}
+        style={{ border: 'none', background: 'none', cursor: 'pointer' }}
+      >
+        📝
+      </button>
+
+      <button
+        onClick={async () => {
+          if (confirm(`Hapus mapel ${m.nama_mapel}?`)) {
+            await supabase.from('data_mapel').delete().eq('id', m.id)
+            fetchData()
+          }
+        }}
+        style={{ border: 'none', background: 'none', cursor: 'pointer' }}
+      >
+        🗑️
+      </button>
+    </div>
+  </div>
+))}
+
               </div>
               <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
