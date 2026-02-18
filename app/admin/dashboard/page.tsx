@@ -209,58 +209,11 @@ export default function DashboardPage() {
 
   // --- LOGIKA FITUR BARU: MASTER & BANK SOAL ---
   const handleMapelSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const payload = { 
-      nama_mapel: formMapel.nama_mapel, 
-      kode_mapel: formMapel.kode_mapel.toUpperCase() 
-    };
-    
-    if (formMapel.id) {
-      await supabase.from('data_mapel').update(payload).eq('id', formMapel.id);
-    } else {
-      await supabase.from('data_mapel').insert([payload]);
-    }
-    
-    setShowModalMapel(false); 
-    setFormMapel({id:null, nama_mapel:'', kode_mapel:''}); 
-    fetchData();
+    e.preventDefault(); 
+    await supabase.from('data_mapel').insert([{ nama_mapel: formMapel.nama_mapel, kode_mapel: formMapel.kode_mapel.toUpperCase() }]);
+    setShowModalMapel(false); setFormMapel({id:null, nama_mapel:'', kode_mapel:''}); fetchData();
   }
 
-// Fungsi Hapus Mapel
-  const deleteMapel = async (id: number) => {
-    if (confirm('Hapus mata pelajaran ini?')) {
-      const { error } = await supabase.from('data_mapel').delete().eq('id', id);
-      if (error) alert(error.message); else fetchData();
-    }
-  }
-
-  const editMapel = (m: any) => {
-    setFormMapel({ id: m.id, nama_mapel: m.nama_mapel, kode_mapel: m.kode_mapel });
-    setShowModalMapel(true);
-  }
-
-  // Fungsi Persiapan Edit Mapel
-  const editMapel = (m: any) => {
-    setFormMapel({ id: m.id, nama_mapel: m.nama_mapel, kode_mapel: m.kode_mapel });
-    setShowModalMapel(true);
-  }
-  
-const handleMapelSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const payload = { nama_mapel: formMapel.nama_mapel, kode_mapel: formMapel.kode_mapel.toUpperCase() };
-    
-    if (formMapel.id) {
-      // Jika ada ID, berarti UPDATE
-      await supabase.from('data_mapel').update(payload).eq('id', formMapel.id);
-    } else {
-      // Jika tidak ada ID, berarti INSERT baru
-      await supabase.from('data_mapel').insert([payload]);
-    }
-    
-    setShowModalMapel(false); 
-    setFormMapel({id:null, nama_mapel:'', kode_mapel:''}); 
-    fetchData();
-  }
  const handleAsesmenSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Kita kirim kolomnya saja, JANGAN kirim ID
@@ -396,21 +349,7 @@ const handleMapelSubmit = async (e: React.FormEvent) => {
                   <h4 style={{ margin: 0 }}>📚 Mata Pelajaran</h4>
                   <button onClick={() => setShowModalMapel(true)} style={{ backgroundColor: '#1e293b', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px' }}>+ Mapel</button>
                 </div>
-                {mapels.map(m => (
-  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #eee' }}>
-    <span style={{ fontSize: '13px' }}><b>{m.kode_mapel}</b> - {m.nama_mapel}</span>
-    <div style={{ display: 'flex', gap: '8px' }}>
-      {/* Tombol Edit Kuning */}
-      <button onClick={() => editMapel(m)} style={{ background: '#eab308', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
-        Edit
-      </button>
-      {/* Tombol Hapus Merah */}
-      <button onClick={() => deleteMapel(m.id)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
-        Hapus
-      </button>
-    </div>
-  </div>
-))}
+                {mapels.map(m => <div key={m.id} style={{ padding: '10px 0', borderBottom: '1px solid #eee', fontSize: '13px' }}><b>{m.kode_mapel}</b> - {m.nama_mapel}</div>)}
               </div>
               <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
