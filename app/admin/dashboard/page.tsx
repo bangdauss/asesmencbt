@@ -606,31 +606,55 @@ const deleteAsesmen = async (id: number) => {
 
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead style={{ backgroundColor: '#f8fafc' }}>
-                  <tr style={{ textAlign: 'left' }}>
-                    <th style={{ padding: '10px' }}>No</th>
-                    <th style={{ padding: '10px' }}>Pertanyaan</th>
-                    <th style={{ padding: '10px', textAlign: 'center' }}>Kunci</th>
-                    <th style={{ padding: '10px', textAlign: 'center' }}>bobot</th>
-                    <th style={{ padding: '10px', textAlign: 'center' }}>Aksi</th>
-                  </tr>
-                </thead>
+  <tr style={{ textAlign: 'left' }}>
+    <th style={{ padding: '10px' }}>No</th>
+    <th style={{ padding: '10px' }}>Pertanyaan</th>
+    <th style={{ padding: '10px', textAlign: 'center' }}>Gambar</th> {/* <--- TAMBAH INI */}
+    <th style={{ padding: '10px', textAlign: 'center' }}>Kunci</th>
+    <th style={{ padding: '10px', textAlign: 'center' }}>Bobot</th>
+    <th style={{ padding: '10px', textAlign: 'center' }}>Aksi</th>
+  </tr>
+</thead>
                 <tbody>
-                  {soalList.map((s, i) => (
-                    <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: '10px' }}>{i + 1}</td>
-                      <td style={{ padding: '10px' }}>{s.pertanyaan.substring(0, 80)}...</td>
-                      <td style={{ padding: '10px', textAlign: 'center' }}>
-                        <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
-                          {s.kunci || s.kunci_jawaban || '-'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>{s.bobot || 0}</td>
-                      <td style={{ padding: '10px', textAlign: 'center' }}>
-                        <button onClick={async () => { if(confirm("Hapus soal ini?")){ await supabase.from('bank_soal').delete().eq('id', s.id); fetchSoal(selectedAsesmenId); } }} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>🗑️</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+  {soalList.map((s, i) => (
+    <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
+      <td style={{ padding: '10px' }}>{i + 1}</td>
+      <td style={{ padding: '10px' }}>{s.pertanyaan.substring(0, 80)}...</td>
+
+      {/* --- INI KOLOM GAMBAR YANG BARU --- */}
+      <td style={{ padding: '10px', textAlign: 'center' }}>
+        {s.gambar ? (
+          <img 
+            src={s.gambar} 
+            alt="soal" 
+            style={{ 
+              width: '45px', 
+              height: '45px', 
+              objectFit: 'cover', 
+              borderRadius: '6px', 
+              border: '1px solid #ddd', 
+              cursor: 'pointer' 
+            }}
+            onClick={() => window.open(s.gambar, '_blank')} 
+          />
+        ) : (
+          <span style={{ color: '#ccc', fontSize: '11px' }}>no img</span>
+        )}
+      </td>
+      {/* ---------------------------------- */}
+
+      <td style={{ padding: '10px', textAlign: 'center' }}>
+        <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
+          {s.kunci || s.kunci_jawaban || '-'}
+        </span>
+      </td>
+      <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>{s.bobot || 0}</td>
+      <td style={{ padding: '10px', textAlign: 'center' }}>
+        <button onClick={async () => { if(confirm("Hapus soal ini?")){ await supabase.from('bank_soal').delete().eq('id', s.id); fetchSoal(selectedAsesmenId); } }} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>🗑️</button>
+      </td>
+    </tr>
+  ))}
+</tbody>
               </table>
             </div>
           )}
