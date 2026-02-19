@@ -497,6 +497,7 @@ const deleteAsesmen = async (id: number) => {
     <th style={{ padding: '10px' }}>Asesmen</th>
     <th style={{ padding: '10px' }}>Mapel</th>
     <th style={{ padding: '10px' }}>Status</th>
+	 </tr>
   </thead>
   <tbody>
     {asesmens.map((a, index) => (
