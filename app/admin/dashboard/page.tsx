@@ -56,8 +56,17 @@ export default function DashboardPage() {
     const { data: mapelData } = await supabase.from('data_mapel').select('*').order('nama_mapel', { ascending: true })
     if (mapelData) setMapels(mapelData)
 
-    const { data: asesmenData } = await supabase.from('data_asesmen').select('*').order('id', { ascending: false })
-    if (asesmenData) setAsesmens(asesmenData)
+   const { data: asesmenData } = await supabase
+  .from('data_asesmen')
+  .select(`
+    *,
+    data_mapel (
+      nama_mapel
+    )
+  `)
+  .order('id', { ascending: false })
+
+if (asesmenData) setAsesmens(asesmenData)
 
     setIsLoadingConfig(false)
   }
@@ -475,33 +484,64 @@ const deleteAsesmen = async (id: number) => {
                   <h4 style={{ margin: 0 }}>📝 Wadah Asesmen</h4>
                   <button onClick={() => setShowModalAsesmen(true)} style={{ backgroundColor: '#8b5cf6', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px' }}>+ Asesmen</button>
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                  <thead style={{ backgroundColor: '#f8fafc' }}><tr style={{ textAlign: 'left' }}><th style={{ padding: '10px' }}>Kode</th><th style={{ padding: '10px' }}>Asesmen</th><th style={{ padding: '10px' }}>Status</th></tr></thead>
-                  <tbody>{asesmens.map(a => (
-  <tr key={a.id} style={{ borderBottom: '1px solid #eee' }}>
-    <td style={{ padding: '10px' }}><code>{a.kode_asesmen}</code></td>
-    <td style={{ padding: '10px' }}>{a.nama_asesmen}</td>
-    <td style={{ padding: '10px' }}>
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-        {/* Tombol Status */}
-        <button onClick={() => toggleAsesmenStatus(a.id, a.status)} style={{ backgroundColor: a.status ? '#22c55e' : '#94a3b8', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px' }}>
-          {a.status ? 'AKTIF' : 'OFF'}
-        </button>
+               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+  <thead style={{ backgroundColor: '#f8fafc' }}>
+    <tr style={{ textAlign: 'left' }}>
+      <th style={{ padding: '10px' }}>Kode</th>
+      <th style={{ padding: '10px' }}>Asesmen</th>
+      <th style={{ padding: '10px' }}>Mapel</th> {/* Header Baru */}
+      <th style={{ padding: '10px' }}>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {asesmens.map((a) => (
+      <tr key={a.id} style={{ borderBottom: '1px solid #eee' }}>
+        <td style={{ padding: '10px' }}>
+          <code>{a.kode_asesmen}</code>
+        </td>
+        <td style={{ padding: '10px' }}>{a.nama_asesmen}</td>
         
-        {/* Tombol Edit Kuning */}
-        <button onClick={() => editAsesmen(a)} style={{ backgroundColor: '#eab308', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px' }}>
-          Edit
-        </button>
+        {/* Isi Kolom Mapel Baru */}
+        <td style={{ padding: '10px' }}>
+          <span style={{ 
+            fontSize: '11px', 
+            backgroundColor: '#f1f5f9', 
+            padding: '2px 6px', 
+            borderRadius: '4px', 
+            color: '#475569',
+            fontWeight: 'bold'
+          }}>
+            {a.data_mapel?.nama_mapel || "-"}
+          </span>
+        </td>
 
-        {/* Tombol Hapus Merah */}
-        <button onClick={() => deleteAsesmen(a.id)} style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px' }}>
-          Hapus
-        </button>
-      </div>
-    </td>
-  </tr>
-))}</tbody>
-                </table>
+        <td style={{ padding: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={() => toggleAsesmenStatus(a.id, a.status)}
+              style={{ backgroundColor: a.status ? '#22c55e' : '#94a3b8', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px' }}
+            >
+              {a.status ? 'AKTIF' : 'OFF'}
+            </button>
+            <button
+              onClick={() => editAsesmen(a)}
+              style={{ backgroundColor: '#eab308', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px' }}
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => deleteAsesmen(a.id)}
+              style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px' }}
+            >
+              Hapus
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+			     			   
               </div>
             </div>
           )}
