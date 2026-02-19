@@ -492,18 +492,22 @@ const deleteAsesmen = async (id: number) => {
                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
   <thead style={{ backgroundColor: '#f8fafc' }}>
     <tr style={{ textAlign: 'left' }}>
-      <th style={{ padding: '10px' }}>Kode</th>
-      <th style={{ padding: '10px' }}>Asesmen</th>
-      <th style={{ padding: '10px' }}>Mapel</th> {/* Header Baru */}
-      <th style={{ padding: '10px' }}>Status</th>
-    </tr>
+    <th style={{ padding: '10px', width: '40px' }}>No</th>
+    <th style={{ padding: '10px' }}>Kode</th>
+    <th style={{ padding: '10px' }}>Asesmen</th>
+    <th style={{ padding: '10px' }}>Mapel</th>
+    <th style={{ padding: '10px' }}>Status</th>
   </thead>
   <tbody>
-    {asesmens.map((a) => (
+    {asesmens.map((a, index) => (
       <tr key={a.id} style={{ borderBottom: '1px solid #eee' }}>
-        <td style={{ padding: '10px' }}>
-          <code>{a.kode_asesmen}</code>
-        </td>
+  <td style={{ padding: '10px', textAlign: 'center', color: '#64748b' }}>
+    {index + 1}
+  </td>
+
+  <td style={{ padding: '10px' }}>
+    <code>{a.kode_asesmen}</code>
+  </td>
         <td style={{ padding: '10px' }}>{a.nama_asesmen}</td>
         
         {/* Isi Kolom Mapel Baru */}
