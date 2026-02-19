@@ -511,7 +511,9 @@ const deleteAsesmen = async (id: number) => {
             color: '#475569',
             fontWeight: 'bold'
           }}>
-            {a.data_mapel?.nama_mapel || "-"}
+            {Array.isArray(a.data_mapel) 
+  ? a.data_mapel[0]?.nama_mapel 
+  : (a.data_mapel?.nama_mapel || "-")}
           </span>
         </td>
 
