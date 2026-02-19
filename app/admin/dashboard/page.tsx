@@ -436,47 +436,52 @@ const deleteAsesmen = async (id: number) => {
                   <h4 style={{ margin: 0 }}>📚 Mata Pelajaran</h4>
                   <button onClick={() => setShowModalMapel(true)} style={{ backgroundColor: '#1e293b', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px' }}>+ Mapel</button>
                 </div>
-                {mapels.map((m, index) => (
-  <div
-    key={m.id}
-    style={{
-      padding: '10px 0',
-      borderBottom: '1px solid #eee',
-      fontSize: '13px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }}
-  >
-    <div>
-  <b>{index + 1}.</b> <b>{m.kode_mapel}</b> - {m.nama_mapel}
-</div>
+                
+				<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+  <thead style={{ backgroundColor: '#f8fafc' }}>
+    <tr style={{ textAlign: 'left' }}>
+      <th style={{ padding: '10px', width: '40px' }}>No</th>
+      <th style={{ padding: '10px' }}>Kode</th>
+      <th style={{ padding: '10px' }}>Nama Mapel</th>
+      <th style={{ padding: '10px', textAlign: 'center' }}>Aksi</th>
+    </tr>
+  </thead>
+  <tbody>
+    {mapels.map((m, index) => (
+      <tr key={m.id} style={{ borderBottom: '1px solid #eee' }}>
+        <td style={{ padding: '10px' }}>{index + 1}</td>
+        <td style={{ padding: '10px' }}>
+          <code>{m.kode_mapel}</code>
+        </td>
+        <td style={{ padding: '10px' }}>{m.nama_mapel}</td>
+        <td style={{ padding: '10px', textAlign: 'center' }}>
+          <button
+            onClick={() => {
+              setFormMapel(m)
+              setShowModalMapel(true)
+            }}
+            style={{ border: 'none', background: 'none', cursor: 'pointer' }}
+          >
+            📝
+          </button>
 
-    <div style={{ display: 'flex', gap: '8px' }}>
-      <button
-        onClick={() => {
-          setFormMapel(m)
-          setShowModalMapel(true)
-        }}
-        style={{ border: 'none', background: 'none', cursor: 'pointer' }}
-      >
-        📝
-      </button>
+          <button
+            onClick={async () => {
+              if (confirm(`Hapus mapel ${m.nama_mapel}?`)) {
+                await supabase.from('data_mapel').delete().eq('id', m.id)
+                fetchData()
+              }
+            }}
+            style={{ border: 'none', background: 'none', cursor: 'pointer', marginLeft: '8px' }}
+          >
+            🗑️
+          </button>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
 
-      <button
-        onClick={async () => {
-          if (confirm(`Hapus mapel ${m.nama_mapel}?`)) {
-            await supabase.from('data_mapel').delete().eq('id', m.id)
-            fetchData()
-          }
-        }}
-        style={{ border: 'none', background: 'none', cursor: 'pointer' }}
-      >
-        🗑️
-      </button>
-    </div>
-  </div>
-))}
 
               </div>
               <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
