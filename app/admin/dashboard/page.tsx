@@ -492,23 +492,18 @@ const deleteAsesmen = async (id: number) => {
                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
   <thead style={{ backgroundColor: '#f8fafc' }}>
     <tr style={{ textAlign: 'left' }}>
-    <th style={{ padding: '10px', width: '40px' }}>No</th>
-    <th style={{ padding: '10px' }}>Kode</th>
-    <th style={{ padding: '10px' }}>Asesmen</th>
-    <th style={{ padding: '10px' }}>Mapel</th>
-    <th style={{ padding: '10px' }}>Status</th>
-	 </tr>
+      <th style={{ padding: '10px' }}>Kode</th>
+      <th style={{ padding: '10px' }}>Asesmen</th>
+      <th style={{ padding: '10px' }}>Mapel</th> {/* Header Baru */}
+      <th style={{ padding: '10px' }}>Status</th>
+    </tr>
   </thead>
   <tbody>
-    {asesmens.map((a, index) => (
+    {asesmens.map((a) => (
       <tr key={a.id} style={{ borderBottom: '1px solid #eee' }}>
-  <td style={{ padding: '10px', textAlign: 'center', color: '#64748b' }}>
-    {index + 1}
-  </td>
-
-  <td style={{ padding: '10px' }}>
-    <code>{a.kode_asesmen}</code>
-  </td>
+        <td style={{ padding: '10px' }}>
+          <code>{a.kode_asesmen}</code>
+        </td>
         <td style={{ padding: '10px' }}>{a.nama_asesmen}</td>
         
         {/* Isi Kolom Mapel Baru */}
@@ -558,53 +553,24 @@ const deleteAsesmen = async (id: number) => {
             </div>
           )}
 
-         {/* MENU BARU: BANK SOAL */}
-{activeMenu === 'soal' && (
-  <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-    <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-      <select onChange={(e) => {setSelectedAsesmenId(e.target.value); fetchSoal(e.target.value);}} style={{ padding: '10px', borderRadius: '6px', flex: 1, border: '1px solid #cbd5e1' }}>
-        <option value="">-- Pilih Asesmen Tujuan --</option>
-        {asesmens.map(a => <option key={a.id} value={a.id}>[{a.kode_asesmen}] {a.nama_asesmen}</option>)}
-      </select>
-      <label style={{ backgroundColor: '#1e293b', color: 'white', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>📥 Import JSON <input type="file" accept=".json" onChange={handleImportJSON} style={{ display: 'none' }} /></label>
-    </div>
-    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-      <thead style={{ backgroundColor: '#f8fafc' }}>
-        <tr style={{ textAlign: 'left' }}>
-          <th style={{ padding: '10px' }}>No</th>
-          <th style={{ padding: '10px' }}>Pertanyaan</th>
-          <th style={{ padding: '10px', textAlign: 'center' }}>Kunci</th> {/* Tambah Header Kunci */}
-          <th style={{ padding: '10px', textAlign: 'center' }}>Skor</th>  {/* Tambah Header Skor */}
-          <th style={{ padding: '10px', textAlign: 'center' }}>Aksi</th>
-        </tr>
-      </thead>
-      <tbody>
-        {soalList.map((s, i) => (
-          <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
-            <td style={{ padding: '10px' }}>{i + 1}</td>
-            <td style={{ padding: '10px' }}>{s.pertanyaan.substring(0, 100)}...</td>
-            
-            {/* Kolom Kunci Jawaban */}
-            <td style={{ padding: '10px', textAlign: 'center' }}>
-              <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
-                {s.kunci_jawaban || s.kunci || '-'}
-              </span>
-            </td>
-
-            {/* Kolom Skor */}
-            <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>
-              {s.skor || 0}
-            </td>
-
-            <td style={{ padding: '10px', textAlign: 'center' }}>
-              <button onClick={async () => { if(confirm("Hapus soal ini?")){ await supabase.from('bank_soal').delete().eq('id', s.id); fetchSoal(selectedAsesmenId); } }} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>🗑️</button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
+          {/* MENU BARU: BANK SOAL */}
+          {activeMenu === 'soal' && (
+            <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+              <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+                <select onChange={(e) => {setSelectedAsesmenId(e.target.value); fetchSoal(e.target.value);}} style={{ padding: '10px', borderRadius: '6px', flex: 1, border: '1px solid #cbd5e1' }}>
+                  <option value="">-- Pilih Asesmen Tujuan --</option>
+                  {asesmens.map(a => <option key={a.id} value={a.id}>[{a.kode_asesmen}] {a.nama_asesmen}</option>)}
+                </select>
+                <label style={{ backgroundColor: '#1e293b', color: 'white', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>📥 Import JSON <input type="file" accept=".json" onChange={handleImportJSON} style={{ display: 'none' }} /></label>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead style={{ backgroundColor: '#f8fafc' }}><tr style={{ textAlign: 'left' }}><th style={{ padding: '10px' }}>No</th><th style={{ padding: '10px' }}>Pertanyaan</th><th style={{ padding: '10px' }}>Aksi</th></tr></thead>
+                <tbody>{soalList.map((s, i) => (<tr key={s.id} style={{ borderBottom: '1px solid #eee' }}><td style={{ padding: '10px' }}>{i + 1}</td><td style={{ padding: '10px' }}>{s.pertanyaan.substring(0, 100)}...</td><td style={{ padding: '10px' }}><button onClick={async () => { if(confirm("Hapus soal ini?")){ await supabase.from('bank_soal').delete().eq('id', s.id); fetchSoal(selectedAsesmenId); } }} style={{ border: 'none', background: 'none' }}>🗑️</button></td></tr>))}</tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* --- SEMUA MODAL ASLI BOS (UTUH) --- */}
       {showModalImport && (
