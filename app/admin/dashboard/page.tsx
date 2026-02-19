@@ -436,7 +436,7 @@ const deleteAsesmen = async (id: number) => {
                   <h4 style={{ margin: 0 }}>📚 Mata Pelajaran</h4>
                   <button onClick={() => setShowModalMapel(true)} style={{ backgroundColor: '#1e293b', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px' }}>+ Mapel</button>
                 </div>
-                {mapels.map(m => (
+                {mapels.map((m, index) => (
   <div
     key={m.id}
     style={{
@@ -449,8 +449,8 @@ const deleteAsesmen = async (id: number) => {
     }}
   >
     <div>
-      <b>{m.kode_mapel}</b> - {m.nama_mapel}
-    </div>
+  <b>{index + 1}.</b> <b>{m.kode_mapel}</b> - {m.nama_mapel}
+</div>
 
     <div style={{ display: 'flex', gap: '8px' }}>
       <button
