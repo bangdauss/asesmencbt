@@ -564,8 +564,53 @@ const deleteAsesmen = async (id: number) => {
                 <label style={{ backgroundColor: '#1e293b', color: 'white', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>📥 Import JSON <input type="file" accept=".json" onChange={handleImportJSON} style={{ display: 'none' }} /></label>
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead style={{ backgroundColor: '#f8fafc' }}><tr style={{ textAlign: 'left' }}><th style={{ padding: '10px' }}>No</th><th style={{ padding: '10px' }}>Pertanyaan</th><th style={{ padding: '10px' }}>Aksi</th></tr></thead>
-                <tbody>{soalList.map((s, i) => (<tr key={s.id} style={{ borderBottom: '1px solid #eee' }}><td style={{ padding: '10px' }}>{i + 1}</td><td style={{ padding: '10px' }}>{s.pertanyaan.substring(0, 100)}...</td><td style={{ padding: '10px' }}><button onClick={async () => { if(confirm("Hapus soal ini?")){ await supabase.from('bank_soal').delete().eq('id', s.id); fetchSoal(selectedAsesmenId); } }} style={{ border: 'none', background: 'none' }}>🗑️</button></td></tr>))}</tbody>
+                <thead style={{ backgroundColor: '#f8fafc' }}>
+<tr style={{ textAlign: 'left' }}>
+  <th style={{ padding: '10px' }}>No</th>
+  <th style={{ padding: '10px' }}>Pertanyaan</th>
+  <th style={{ padding: '10px', textAlign: 'center' }}>Kunci</th>
+  <th style={{ padding: '10px', textAlign: 'center' }}>Skor</th>
+  <th style={{ padding: '10px' }}>Aksi</th>
+</tr>
+</thead>
+<tbody>
+{soalList.map((s, i) => (
+<tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
+  
+  <td style={{ padding: '10px' }}>{i + 1}</td>
+
+  <td style={{ padding: '10px' }}>
+    {s.pertanyaan?.substring(0, 100)}...
+  </td>
+
+  <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#16a34a' }}>
+    {s.kunci_jawaban || '-'}
+  </td>
+
+  <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#2563eb' }}>
+    {s.skor || 0}
+  </td>
+
+  <td style={{ padding: '10px' }}>
+    <button
+      onClick={async () => {
+        if(confirm("Hapus soal ini?")){
+          await supabase.from('bank_soal').delete().eq('id', s.id);
+          fetchSoal(selectedAsesmenId);
+        }
+      }}
+      style={{ border: 'none', background: 'none' }}
+    >
+      🗑️
+    </button>
+  </td>
+
+</tr>
+))}
+</tbody>
+
+
+		
               </table>
             </div>
           )}
