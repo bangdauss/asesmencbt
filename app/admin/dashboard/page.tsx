@@ -557,10 +557,7 @@ const deleteAsesmen = async (id: number) => {
           {activeMenu === 'soal' && (
             <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-                <select onChange={(e) => {setSelectedAsesmenId(e.target.value); fetchSoal(e.target.value);}} style={{ padding: '10px', borderRadius: '6px', flex: 1, border: '1px solid #cbd5e1' }}>
-                  <option value="">-- Pilih Asesmen Tujuan --</option>
-                  {asesmens.map(a => <option key={a.id} value={a.id}>[{a.kode_asesmen}] {a.nama_asesmen}</option>)}
-                </select>
+                
                 <label style={{ backgroundColor: '#1e293b', color: 'white', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>📥 Import JSON <input type="file" accept=".json" onChange={handleImportJSON} style={{ display: 'none' }} /></label>
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
