@@ -19,7 +19,8 @@ export default function DashboardPage() {
   const [config, setConfig] = useState({ npsn: '', nama_sekolah: '' })
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
   const [showModalSiswa, setShowModalSiswa] = useState(false)
-  const [showModalImport, setShowModalImport] = useState(false) 
+  const [showModalImport, setShowModalImport] = useState(false)
+  const [showModalImportSoal, setShowModalImportSoal] = useState(false); // State baru untuk modal soal
   const [isEditSiswa, setIsEditSiswa] = useState(false)
   const [formSiswa, setFormSiswa] = useState({
     no_peserta: '', nama_lengkap: '', jk: '', kelas: '', password: '', sesi: '', status: false
@@ -331,16 +332,39 @@ const deleteAsesmen = async (id: number) => {
   }
 
   const handleImportJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file || !selectedAsesmenId) return;
+    const file = e.target.files?.[0];
+    
+    // Validasi: Harus pilih asesmen dulu di dropdown modal
+    if (!file || !selectedAsesmenId) {
+      alert("Silakan pilih asesmen tujuan terlebih dahulu!");
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
         const json = JSON.parse(evt.target?.result as string);
-        const formatted = json.map((s: any) => ({ ...s, id_asesmen: parseInt(selectedAsesmenId) }));
+        
+        // Mapping: memasukkan ID Asesmen (angka) ke setiap objek soal dari JSON
+        const formatted = json.map((s: any) => ({ 
+          ...s, 
+          id_asesmen: parseInt(selectedAsesmenId) 
+        }));
+
+        // Opsional: Hapus soal lama pada asesmen tersebut agar tidak duplikat
         await supabase.from('bank_soal').delete().eq('id_asesmen', selectedAsesmenId);
-        await supabase.from('bank_soal').insert(formatted);
-        alert("Soal berhasil diimport!"); fetchSoal(selectedAsesmenId);
-      } catch (err) { alert("Format JSON tidak valid!"); }
+        
+        // Simpan data baru ke tabel bank_soal
+        const { error } = await supabase.from('bank_soal').insert(formatted);
+        
+        if (error) throw error;
+
+        alert("Soal berhasil diimport!");
+        setShowModalImportSoal(false); // Tutup modal otomatis setelah berhasil
+        fetchSoal(selectedAsesmenId); // Segarkan tampilan tabel soal
+      } catch (err: any) { 
+        alert("Gagal import: " + err.message); 
+      }
     };
     reader.readAsText(file);
   }
@@ -553,64 +577,66 @@ const deleteAsesmen = async (id: number) => {
             </div>
           )}
 
-          {/* MENU BARU: BANK SOAL */}
+          {/* MENU BANK SOAL: Tampilan Baru Lebih Sederhana */}
           {activeMenu === 'soal' && (
             <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-              <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-                
-                <label style={{ backgroundColor: '#1e293b', color: 'white', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>📥 Import JSON <input type="file" accept=".json" onChange={handleImportJSON} style={{ display: 'none' }} /></label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h3 style={{ margin: 0 }}>Daftar Bank Soal</h3>
+                {/* Tombol ini sekarang memicu Modal/Pop-up */}
+                <button 
+                  onClick={() => setShowModalImportSoal(true)} 
+                  style={{ backgroundColor: '#1e293b', color: 'white', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', border: 'none' }}
+                >
+                  📥 Import Soal JSON
+                </button>
               </div>
+
+              {/* Filter Dropdown untuk melihat daftar soal */}
+              <select 
+                onChange={(e) => {setSelectedAsesmenId(e.target.value); fetchSoal(e.target.value);}} 
+                style={{ padding: '10px', borderRadius: '6px', width: '100%', border: '1px solid #cbd5e1', marginBottom: '20px' }}
+              >
+                <option value="">-- Pilih Asesmen untuk Menampilkan Soal --</option>
+                {asesmens.map(a => (
+                  <option key={a.id} value={a.id}>
+                    [{a.kode_asesmen}] {a.nama_asesmen}
+                  </option>
+                ))}
+              </select>
+
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead style={{ backgroundColor: '#f8fafc' }}>
-<tr style={{ textAlign: 'left' }}>
-  <th style={{ padding: '10px' }}>No</th>
-  <th style={{ padding: '10px' }}>Pertanyaan</th>
-  <th style={{ padding: '10px', textAlign: 'center' }}>Kunci</th>
-  <th style={{ padding: '10px', textAlign: 'center' }}>Skor</th>
-  <th style={{ padding: '10px' }}>Aksi</th>
-</tr>
-</thead>
-<tbody>
-{soalList.map((s, i) => (
-<tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
-  
-  <td style={{ padding: '10px' }}>{i + 1}</td>
-
-  <td style={{ padding: '10px' }}>
-    {s.pertanyaan?.substring(0, 100)}...
-  </td>
-
-  <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#16a34a' }}>
-    {s.kunci_jawaban || '-'}
-  </td>
-
-  <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#2563eb' }}>
-    {s.skor || 0}
-  </td>
-
-  <td style={{ padding: '10px' }}>
-    <button
-      onClick={async () => {
-        if(confirm("Hapus soal ini?")){
-          await supabase.from('bank_soal').delete().eq('id', s.id);
-          fetchSoal(selectedAsesmenId);
-        }
-      }}
-      style={{ border: 'none', background: 'none' }}
-    >
-      🗑️
-    </button>
-  </td>
-
-</tr>
-))}
-</tbody>
-
-
-		
+                  <tr style={{ textAlign: 'left' }}>
+                    <th style={{ padding: '10px' }}>No</th>
+                    <th style={{ padding: '10px' }}>Pertanyaan</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>Kunci</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>Skor</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {soalList.map((s, i) => (
+                    <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
+                      <td style={{ padding: '10px' }}>{i + 1}</td>
+                      <td style={{ padding: '10px' }}>{s.pertanyaan.substring(0, 80)}...</td>
+                      <td style={{ padding: '10px', textAlign: 'center' }}>
+                        <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
+                          {s.kunci || s.kunci_jawaban || '-'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>{s.skor || 0}</td>
+                      <td style={{ padding: '10px', textAlign: 'center' }}>
+                        <button onClick={async () => { if(confirm("Hapus soal ini?")){ await supabase.from('bank_soal').delete().eq('id', s.id); fetchSoal(selectedAsesmenId); } }} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>🗑️</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
           )}
+          
+		  
+		  
         </div>
       </div>
 
@@ -758,6 +784,52 @@ const deleteAsesmen = async (id: number) => {
             </div>
         </div>
       )}
+
+{/* MODAL IMPORT SOAL: Langkah Terakhir */}
+          {showModalImportSoal && (
+            <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200 }}>
+              <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '16px', width: '450px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                <h3 style={{ marginTop: 0, textAlign: 'center', color: '#1e293b' }}>📥 Import Soal ke Wadah</h3>
+                
+                <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>1. Pilih Wadah Asesmen:</p>
+                <select 
+                  value={selectedAsesmenId}
+                  onChange={(e) => setSelectedAsesmenId(e.target.value)} 
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '20px', outline: 'none' }}
+                >
+                  <option value="">-- Pilih Kode Asesmen --</option>
+                  {asesmens.map(a => (
+                    <option key={a.id} value={a.id}>
+                      [{a.kode_asesmen}] {a.nama_asesmen}
+                    </option>
+                  ))}
+                </select>
+
+                <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>2. Pilih File JSON:</p>
+                <label style={{ 
+                  backgroundColor: selectedAsesmenId ? '#1e293b' : '#94a3b8', 
+                  color: 'white', padding: '12px', borderRadius: '8px', textAlign: 'center', 
+                  cursor: selectedAsesmenId ? 'pointer' : 'not-allowed', display: 'block', fontWeight: 'bold', transition: '0.3s' 
+                }}>
+                  {selectedAsesmenId ? '📂 Klik untuk Pilih File & Import' : '⚠️ Pilih Asesmen Dulu'}
+                  <input 
+                    type="file" 
+                    accept=".json" 
+                    disabled={!selectedAsesmenId}
+                    onChange={handleImportJSON} 
+                    style={{ display: 'none' }} 
+                  />
+                </label>
+
+                <button 
+                  onClick={() => setShowModalImportSoal(false)} 
+                  style={{ width: '100%', marginTop: '15px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          )}
 
     </div>
   );
