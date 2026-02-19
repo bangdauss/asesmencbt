@@ -610,7 +610,7 @@ const deleteAsesmen = async (id: number) => {
                     <th style={{ padding: '10px' }}>No</th>
                     <th style={{ padding: '10px' }}>Pertanyaan</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>Kunci</th>
-                    <th style={{ padding: '10px', textAlign: 'center' }}>Skor</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>bobot</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
@@ -624,7 +624,7 @@ const deleteAsesmen = async (id: number) => {
                           {s.kunci || s.kunci_jawaban || '-'}
                         </span>
                       </td>
-                      <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>{s.skor || 0}</td>
+                      <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>{s.bobot || 0}</td>
                       <td style={{ padding: '10px', textAlign: 'center' }}>
                         <button onClick={async () => { if(confirm("Hapus soal ini?")){ await supabase.from('bank_soal').delete().eq('id', s.id); fetchSoal(selectedAsesmenId); } }} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>🗑️</button>
                       </td>
