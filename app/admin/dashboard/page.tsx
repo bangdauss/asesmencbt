@@ -719,9 +719,8 @@ const resetAsesmen = (nama: string) => {
 
 {/* LANJUTAN LANGKAH TERAKHIR: TEMPEL DI BAWAH MENU SOAL */}
           {/* MENU MONITORING: Diperbaiki agar Full Width & Sejajar */}
-     {/* MENU MONITORING: Layout Terstruktur */}
+          {/* MENU MONITORING: Layout Terstruktur */}
 {activeMenu === 'monitoring' && (
-<div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
     
     {/* 1. HEADER PANEL (Full Width di Atas) */}
@@ -873,8 +872,7 @@ const resetAsesmen = (nama: string) => {
       </div>
     </div>
   </div>
-  </div>
-)}     
+)}
 
 
 
