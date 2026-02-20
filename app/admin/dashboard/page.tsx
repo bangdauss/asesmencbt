@@ -719,143 +719,116 @@ const resetAsesmen = (nama: string) => {
 
 {/* LANJUTAN LANGKAH TERAKHIR: TEMPEL DI BAWAH MENU SOAL */}
           {/* MENU MONITORING: Diperbaiki agar Full Width & Sejajar */}
-          {/* MENU MONITORING: Header di atas, Konten di bawahnya */}
-{activeMenu === 'monitoring' && (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-    
-    {/* 1. HEADER PANEL (Paling Atas - Full Width) */}
-    <div style={{ 
-      backgroundColor: 'white', padding: '15px 25px', borderRadius: '12px', 
-      boxShadow: '0 2px 4px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0',
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-    }}>
-      <h3 style={{ margin: 0, color: '#1e293b', fontSize: '18px' }}>
-        <span style={{ marginRight: '10px' }}>🖥️</span> 
-        Panel Administrator <span style={{ color: '#94a3b8', fontSize: '14px' }}>V.2026.1</span>
-      </h3>
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-        <span style={{ fontSize: '12px', color: '#64748b' }}>Status Server:</span>
-        <span style={{ color: '#22c55e', fontSize: '12px', fontWeight: 'bold' }}>● CONNECTED</span>
-      </div>
-    </div>
+          {activeMenu === 'monitoring' && (
+            <div style={{ width: '100%', marginTop: '0px' }}> 
+              <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px', alignItems: 'start' }}>
+                
+                {/* PANEL KIRI: KONFIGURASI */}
+                <div style={{ backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                  <div style={{ backgroundColor: '#0ea5e9', color: 'white', padding: '15px', fontWeight: 'bold', textAlign: 'center' }}>
+                    ⚙️ Konfigurasi Ujian
+                  </div>
+                  <div style={{ padding: '20px' }}>
+                    <label style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>PILIH PAKET SOAL</label>
+                    <select 
+                      onChange={(e) => setSelectedPaket(e.target.value)} 
+                      style={{ width: '100%', padding: '10px', marginTop: '5px', marginBottom: '15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                    >
+                      <option value="">-- Pilih Paket --</option>
+                      {asesmens.map(a => (
+                        <option key={a.id} value={a.id}>[{a.kode_asesmen}] {a.nama_asesmen}</option>
+                      ))}
+                    </select>
 
-    {/* 2. GRID KONTEN (Bawah Header) */}
-    <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px', alignItems: 'start' }}>
-      
-      {/* PANEL KIRI: KONFIGURASI */}
-      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
-        <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '12px', marginBottom: '20px' }}>
-          <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px' }}>⚙️ Konfigurasi Ujian</h4>
-        </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
+                      <div>
+                        <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold' }}>KELAS</label>
+                        <select onChange={(e) => setSelectedKelas(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                          <option value="">Semua</option>
+                          {[...new Set(students.map(s => s.kelas))].map(k => <option key={k} value={k}>{k}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold' }}>DURASI (MNT)</label>
+                        <input 
+                          type="number" 
+                          onChange={(e) => setDurasi(parseInt(e.target.value))} 
+                          placeholder="60" 
+                          style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} 
+                        />
+                      </div>
+                    </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div>
-            <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>PILIH PAKET SOAL</label>
-            <select 
-              onChange={(e) => setSelectedPaket(e.target.value)} 
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }}
-            >
-              <option value="">-- Pilih Paket --</option>
-              {asesmens.map(a => (
-                <option key={a.id} value={a.id}>[{a.kode_asesmen}] {a.nama_asesmen}</option>
-              ))}
-            </select>
-          </div>
+                    <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '2px dashed #cbd5e1', marginBottom: '20px' }}>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '5px', fontWeight: 'bold' }}>TOKEN AKTIF</div>
+                      <h1 style={{ margin: 0, letterSpacing: '5px', color: '#1e293b', fontFamily: 'monospace' }}>{token}</h1>
+                      <button onClick={generateToken} style={{ border: 'none', background: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', marginTop: '10px', textDecoration: 'underline' }}>🔄 Acak Token</button>
+                    </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <div>
-              <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>KELAS</label>
-              <select onChange={(e) => setSelectedKelas(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                <option value="">Semua</option>
-                {[...new Set(students.map(s => s.kelas))].map(k => <option key={k} value={k}>{k}</option>)}
-              </select>
+                    <button 
+                      onClick={handleToggleAsesmen}
+                      style={{ 
+                        width: '100%', padding: '15px', borderRadius: '10px', border: 'none', 
+                        backgroundColor: isAsesmenRunning ? '#ef4444' : '#1e293b', 
+                        color: 'white', fontWeight: 'bold', cursor: 'pointer', transition: '0.3s' 
+                      }}
+                    >
+                      {isAsesmenRunning ? '🛑 HENTIKAN UJIAN' : '🚀 MULAI UJIAN'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* PANEL KANAN: LIVE MONITORING */}
+                <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 style={{ margin: 0 }}>🖥️ Live Monitoring Peserta</h3>
+                    <input 
+                      placeholder="Cari nama siswa..." 
+                      value={searchSiswa}
+                      onChange={(e) => setSearchSiswa(e.target.value)}
+                      style={{ padding: '10px 15px', borderRadius: '25px', border: '1px solid #e2e8f0', width: '250px', outline: 'none' }} 
+                    />
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #f1f5f9', color: '#64748b' }}>
+                          <th style={{ padding: '12px' }}>NO. PESERTA</th>
+                          <th style={{ padding: '12px' }}>NAMA</th>
+                          <th style={{ padding: '12px', textAlign: 'center' }}>KELAS</th>
+                          <th style={{ padding: '12px', textAlign: 'center' }}>STATUS</th>
+                          <th style={{ padding: '12px' }}>PROGRES</th>
+                          <th style={{ padding: '12px', textAlign: 'center' }}>AKSI</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {students
+                          .filter(s => s.nama_lengkap.toLowerCase().includes(searchSiswa.toLowerCase()))
+                          .map((s, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #f8fafc' }}>
+                            <td style={{ padding: '12px', color: '#64748b' }}>{s.no_peserta}</td>
+                            <td style={{ padding: '12px', fontWeight: 'bold', color: '#1e293b' }}>{s.nama_lengkap}</td>
+                            <td style={{ padding: '12px', textAlign: 'center', color: '#ef4444', fontWeight: 'bold' }}>{s.kelas}</td>
+                            <td style={{ padding: '12px', textAlign: 'center' }}>
+                              <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold' }}>✓ Online</span>
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <div style={{ fontWeight: 'bold', color: '#0ea5e9' }}>0 / 40 Soal</div>
+                            </td>
+                            <td style={{ padding: '12px', textAlign: 'center' }}>
+                              <button onClick={() => resetLogin(s.nama_lengkap)} style={{ backgroundColor: '#facc15', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', marginRight: '5px', cursor: 'pointer' }} title="Reset Login">🔄</button>
+                              <button onClick={() => resetAsesmen(s.nama_lengkap)} style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer' }} title="Hapus Hasil">🗑️</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>DURASI</label>
-              <input type="number" placeholder="60" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-            </div>
-          </div>
-
-          <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#f0f9ff', borderRadius: '12px', border: '2px dashed #bae6fd' }}>
-            <div style={{ fontSize: '11px', color: '#0369a1', fontWeight: 'bold' }}>TOKEN AKTIF</div>
-            <h1 style={{ margin: '5px 0', letterSpacing: '4px', color: '#0c4a6e', fontFamily: 'monospace', fontSize: '28px' }}>{token}</h1>
-            <button onClick={generateToken} style={{ border: 'none', background: 'none', color: '#3b82f6', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}>Acak Token Baru</button>
-          </div>
-
-          <button 
-            onClick={handleToggleAsesmen}
-            style={{ 
-              width: '100%', padding: '14px', borderRadius: '10px', border: 'none', 
-              backgroundColor: isAsesmenRunning ? '#ef4444' : '#1e293b', 
-              color: 'white', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s'
-            }}
-          >
-            {isAsesmenRunning ? '🛑 HENTIKAN ASESMEN' : '🚀 MULAI ASESMEN'}
-          </button>
-        </div>
-      </div>
-
-      {/* PANEL KANAN: MONITORING REAL-TIME */}
-      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '12px' }}>
-          <h4 style={{ margin: 0, color: '#1e293b' }}>🖥️ Monitoring Peserta Real-time</h4>
-          <input 
-            placeholder="Cari nama..." 
-            style={{ padding: '8px 15px', borderRadius: '20px', border: '1px solid #cbd5e1', width: '220px', fontSize: '13px' }} 
-            onChange={(e) => setSearchSiswa(e.target.value)}
-          />
-        </div>
-
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', backgroundColor: '#f8fafc', color: '#64748b' }}>
-                <th style={{ padding: '12px', borderBottom: '2px solid #f1f5f9' }}>PESERTA</th>
-                <th style={{ padding: '12px', borderBottom: '2px solid #f1f5f9', textAlign: 'center' }}>KELAS</th>
-                <th style={{ padding: '12px', borderBottom: '2px solid #f1f5f9', textAlign: 'center' }}>STATUS</th>
-                <th style={{ padding: '12px', borderBottom: '2px solid #f1f5f9' }}>PROGRES</th>
-                <th style={{ padding: '12px', borderBottom: '2px solid #f1f5f9', textAlign: 'center' }}>AKSI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students
-                .filter(s => s.nama_lengkap.toLowerCase().includes(searchSiswa.toLowerCase()))
-                .map((s, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px' }}>
-                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{s.nama_lengkap}</div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{s.no_peserta}</div>
-                  </td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>
-                    <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>{s.kelas}</span>
-                  </td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>
-                    <span style={{ color: '#22c55e', fontSize: '11px', fontWeight: 'bold' }}>● ONLINE</span>
-                  </td>
-                  <td style={{ padding: '12px', width: '200px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
-                      <span>Progress</span>
-                      <span style={{ fontWeight: 'bold', color: '#0ea5e9' }}>0 / 40</span>
-                    </div>
-                    <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '10px' }}>
-                      <div style={{ width: '0%', height: '100%', backgroundColor: '#0ea5e9', borderRadius: '10px' }}></div>
-                    </div>
-                  </td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                      <button style={{ backgroundColor: '#eab308', color: 'white', border: 'none', padding: '6px', borderRadius: '6px' }} title="Reset Login">🔄</button>
-                      <button style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '6px', borderRadius: '6px' }} title="Hapus Hasil">🗑️</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+          )}
 
 
 
