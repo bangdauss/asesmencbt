@@ -42,6 +42,15 @@ export default function DashboardPage() {
   const [showModalAsesmen, setShowModalAsesmen] = useState(false)
   const [formMapel, setFormMapel] = useState({ id: null, nama_mapel: '', kode_mapel: '' })
   const [formAsesmen, setFormAsesmen] = useState({ id: null, id_mapel: '', kode_asesmen: '', nama_asesmen: '', status: false })
+  // --- STATE MONITORING ASESMEN ---
+const [token, setToken] = useState('------')
+const [selectedKelas, setSelectedKelas] = useState('')
+const [selectedPaket, setSelectedPaket] = useState('')
+const [durasi, setDurasi] = useState(0)
+const [isAsesmenRunning, setIsAsesmenRunning] = useState(false)
+const [searchSiswa, setSearchSiswa] = useState('')
+const [monitoringData, setMonitoringData] = useState<any[]>([]) // Data siswa + progres
+   
 
   // --- FETCH DATA (UTUH + DATA BARU) ---
   const fetchData = async () => {
@@ -325,7 +334,6 @@ const deleteAsesmen = async (id: number) => {
   }
 }
 
-
   const fetchSoal = async (id: string) => {
     const { data } = await supabase.from('bank_soal').select('*').eq('id_asesmen', id).order('id', { ascending: true });
     if (data) setSoalList(data);
@@ -333,7 +341,8 @@ const deleteAsesmen = async (id: number) => {
 
   const handleImportJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    
+	
+	  
     // Validasi: Harus pilih asesmen dulu di dropdown modal
     if (!file || !selectedAsesmenId) {
       alert("Silakan pilih asesmen tujuan terlebih dahulu!");
@@ -369,6 +378,51 @@ const deleteAsesmen = async (id: number) => {
     reader.readAsText(file);
   }
 
+// 1. Fungsi untuk mengacak Token (6 Karakter Huruf/Angka)
+const generateToken = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Menghilangkan '0','O','1','I' agar tidak bingung
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  setToken(result);
+};
+// 2. Fungsi untuk Mulai atau Menghentikan Asesmen
+const handleToggleAsesmen = () => {
+  // Validasi: Harus pilih paket dan isi durasi dulu
+  if (!selectedPaket) return alert("Silakan pilih Paket Soal terlebih dahulu!");
+  if (durasi <= 0) return alert("Silakan tentukan durasi ujian!");
+
+  if (!isAsesmenRunning) {
+    // Jika posisi OFF lalu diklik:
+    if (confirm("Mulai Asesmen sekarang?")) {
+      setIsAsesmenRunning(true);
+      generateToken(); // Langsung rilis token otomatis saat mulai
+    }
+  } else {
+    // Jika posisi ON lalu diklik:
+    if (confirm("Hentikan Asesmen? Semua siswa yang sedang ujian akan diputus aksenya.")) {
+      setIsAsesmenRunning(false);
+      setToken('------'); // Reset token
+    }
+  }
+};
+// 3. Fungsi Reset Login (Tombol Kuning)
+const resetLogin = (nama: string) => {
+  if (confirm(`Izinkan ${nama} untuk login kembali?`)) {
+    // Logika ke database nanti di sini
+    alert(`Status login ${nama} berhasil direset.`);
+  }
+};
+
+// 4. Fungsi Hapus Hasil/Reset Asesmen (Tombol Merah)
+const resetAsesmen = (nama: string) => {
+  if (confirm(`PERINGATAN: Hapus semua jawaban ${nama}? Siswa harus mulai dari nol.`)) {
+    // Logika delete ke database nanti di sini
+    alert(`Data jawaban ${nama} telah dibersihkan.`);
+  }
+};
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Arial, sans-serif', backgroundColor: '#f1f5f9' }}>
       {/* SIDEBAR (UTUH + MENU BARU) */}
@@ -380,6 +434,7 @@ const deleteAsesmen = async (id: number) => {
           <div onClick={() => setActiveMenu('siswa')} style={{ padding: '15px 20px', cursor: 'pointer', backgroundColor: activeMenu === 'siswa' ? '#334155' : 'transparent', color: 'white' }}>🎓 Data Siswa</div>
           <div onClick={() => setActiveMenu('master')} style={{ padding: '15px 20px', cursor: 'pointer', backgroundColor: activeMenu === 'master' ? '#334155' : 'transparent', color: 'white' }}>📁 Data Master</div>
           <div onClick={() => setActiveMenu('soal')} style={{ padding: '15px 20px', cursor: 'pointer', backgroundColor: activeMenu === 'soal' ? '#334155' : 'transparent', color: 'white' }}>📚 Bank Soal</div>
+		  <div onClick={() => setActiveMenu('monitoring')} style={{ padding: '15px 20px', cursor: 'pointer', backgroundColor: activeMenu === 'monitoring' ? '#334155' : 'transparent', color: 'white' }}>🖥️ Monitor Asesmen</div>
         </nav>
       </div>
 
@@ -658,11 +713,122 @@ const deleteAsesmen = async (id: number) => {
               </table>
             </div>
           )}
-          
-		  
-		  
+            		  
         </div>
       </div>
+
+{/* LANJUTAN LANGKAH TERAKHIR: TEMPEL DI BAWAH MENU SOAL */}
+          {activeMenu === 'monitoring' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px' }}>
+              
+              {/* PANEL KIRI: KONFIGURASI */}
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                <div style={{ backgroundColor: '#0ea5e9', color: 'white', padding: '15px', fontWeight: 'bold', textAlign: 'center' }}>
+                  ⚙️ Konfigurasi Ujian
+                </div>
+                <div style={{ padding: '20px' }}>
+                  <label style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>PILIH PAKET SOAL</label>
+                  <select 
+                    onChange={(e) => setSelectedPaket(e.target.value)} 
+                    style={{ width: '100%', padding: '10px', marginTop: '5px', marginBottom: '15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                  >
+                    <option value="">-- Pilih Paket --</option>
+                    {asesmens.map(a => (
+                      <option key={a.id} value={a.id}>[{a.kode_asesmen}] {a.nama_asesmen}</option>
+                    ))}
+                  </select>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
+                    <div>
+                      <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold' }}>KELAS</label>
+                      <select onChange={(e) => setSelectedKelas(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                        <option value="">Semua</option>
+                        {[...new Set(students.map(s => s.kelas))].map(k => <option key={k} value={k}>{k}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold' }}>DURASI (MNT)</label>
+                      <input 
+                        type="number" 
+                        onChange={(e) => setDurasi(parseInt(e.target.value))} 
+                        placeholder="60" 
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* BOX TOKEN SESUAI DESAIN */}
+                  <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '2px dashed #cbd5e1', marginBottom: '20px' }}>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '5px', fontWeight: 'bold' }}>TOKEN AKTIF</div>
+                    <h1 style={{ margin: 0, letterSpacing: '5px', color: '#1e293b', fontFamily: 'monospace' }}>{token}</h1>
+                    <button onClick={generateToken} style={{ border: 'none', background: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', marginTop: '10px', textDecoration: 'underline' }}>🔄 Acak Token</button>
+                  </div>
+
+                  <button 
+                    onClick={handleToggleAsesmen}
+                    style={{ 
+                      width: '100%', padding: '15px', borderRadius: '10px', border: 'none', 
+                      backgroundColor: isAsesmenRunning ? '#ef4444' : '#1e293b', 
+                      color: 'white', fontWeight: 'bold', cursor: 'pointer', transition: '0.3s' 
+                    }}
+                  >
+                    {isAsesmenRunning ? '🛑 HENTIKAN UJIAN' : '🚀 MULAI UJIAN'}
+                  </button>
+                </div>
+              </div>
+
+              {/* PANEL KANAN: LIVE MONITORING */}
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0 }}>🖥️ Live Monitoring Peserta</h3>
+                  <input 
+                    placeholder="Cari nama siswa..." 
+                    value={searchSiswa}
+                    onChange={(e) => setSearchSiswa(e.target.value)}
+                    style={{ padding: '8px 15px', borderRadius: '25px', border: '1px solid #e2e8f0', width: '250px', outline: 'none' }} 
+                  />
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', borderBottom: '2px solid #f1f5f9', color: '#64748b' }}>
+                        <th style={{ padding: '12px' }}>NAMA PESERTA</th>
+                        <th style={{ padding: '12px' }}>STATUS</th>
+                        <th style={{ padding: '12px' }}>PROGRES</th>
+                        <th style={{ padding: '12px', textAlign: 'center' }}>AKSI</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students
+                        .filter(s => s.nama_lengkap.toLowerCase().includes(searchSiswa.toLowerCase()))
+                        .map((s, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid #f8fafc' }}>
+                          <td style={{ padding: '12px' }}>
+                            <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{s.nama_lengkap}</div>
+                            <div style={{ fontSize: '11px', color: '#94a3b8' }}>{s.no_peserta} | Kelas {s.kelas}</div>
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold' }}>● Online</span>
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            <div style={{ fontWeight: 'bold', color: '#0ea5e9' }}>0 / 40 Soal</div>
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'center' }}>
+                            <button onClick={() => resetLogin(s.nama_lengkap)} style={{ backgroundColor: '#facc15', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', marginRight: '5px', cursor: 'pointer' }} title="Reset Login">🔄</button>
+                            <button onClick={() => resetAsesmen(s.nama_lengkap)} style={{ backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer' }} title="Hapus Hasil">🗑️</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+
 
       {/* --- SEMUA MODAL ASLI BOS (UTUH) --- */}
       {showModalImport && (
