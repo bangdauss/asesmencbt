@@ -721,17 +721,17 @@ const resetAsesmen = (nama: string) => {
           {/* MENU MONITORING: Diperbaiki agar Full Width & Sejajar */}
           {/* MENU MONITORING: Layout Terstruktur */}
 {activeMenu === 'monitoring' && (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-    
-    {/* 1. HEADER PANEL (Full Width di Atas) */}
-    <div style={{ 
-      backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', 
-      border: '1px solid #e2e8f0',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }}>
-      <div>
+  <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h3 style={{ margin: 0 }}>Daftar Bank Soal</h3>
+                {/* Tombol ini sekarang memicu Modal/Pop-up */}
+                <button 
+                  onClick={() => setShowModalImportSoal(true)} 
+                  style={{ backgroundColor: '#1e293b', color: 'white', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', border: 'none' }}
+                >
+                  📥 Import Soal JSON
+                </button>
+              </div>
         <h3 style={{ margin: 0, color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>
           🖥️ PANEL ADMINISTRATOR <span style={{ color: '#0ea5e9', marginLeft: '10px', fontSize: '14px', fontWeight: '400' }}>V.2026.1</span>
         </h3>
