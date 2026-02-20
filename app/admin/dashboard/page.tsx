@@ -50,6 +50,9 @@ const [durasi, setDurasi] = useState(0)
 const [isAsesmenRunning, setIsAsesmenRunning] = useState(false)
 const [searchSiswa, setSearchSiswa] = useState('')
 const [monitoringData, setMonitoringData] = useState<any[]>([]) // Data siswa + progres
+// ================= FILTER PESERTA AKTIF =================
+const pesertaAktif = monitoringData.filter((p: any) =>
+  p.jumlah_dijawab > 0)
    
 
   // --- FETCH DATA (UTUH + DATA BARU) ---
