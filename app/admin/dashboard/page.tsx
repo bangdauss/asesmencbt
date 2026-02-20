@@ -722,15 +722,22 @@ const resetAsesmen = (nama: string) => {
           {/* MENU MONITORING: Layout Terstruktur */}
 {/* MENU MONITORING: Rapat Kiri & Rapih seperti Data Master */}
 {activeMenu === 'monitoring' && (
-  <div style={{ width: '100%' }}>
+  /* Kita paksa geser ke kiri dengan margin negatif dan lebar meluap */
+  <div style={{ 
+    width: 'calc(100% + 25px)', 
+    marginLeft: '-25px', 
+    padding: '0 20px',
+    display: 'flex',
+    flexDirection: 'column'
+  }}>
     
-    {/* HEADER SECTION - Menempel kiri sejajar konten */}
-    <div style={{ marginBottom: '25px' }}>
+    {/* 1. JUDUL HALAMAN - Sekarang sejajar dengan menu di kiri */}
+    <div style={{ marginBottom: '25px', textAlign: 'left' }}>
       <h2 style={{ margin: 0, color: '#1e293b', fontSize: '24px', fontWeight: 'bold' }}>Panel Administrator</h2>
       <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>Kontrol penuh jalannya asesmen dan monitoring peserta secara langsung.</p>
     </div>
 
-    {/* GRID UTAMA: Layout 2 Kolom tanpa margin hantu */}
+    {/* 2. GRID KONTEN - Kolom kiri 340px, kanan sisanya */}
     <div style={{ 
       display: 'grid', 
       gridTemplateColumns: '340px 1fr', 
@@ -739,56 +746,48 @@ const resetAsesmen = (nama: string) => {
       alignItems: 'start'
     }}>
       
-      {/* 1. KOTAK KONFIGURASI (Sisi Kiri) */}
+      {/* BOX KIRI: KONFIGURASI */}
       <div style={{ 
-        backgroundColor: 'white', 
-        padding: '24px', 
-        borderRadius: '12px', 
-        border: '1px solid #e2e8f0', 
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)' 
+        backgroundColor: 'white', padding: '24px', borderRadius: '12px', 
+        border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' 
       }}>
         <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '15px', marginBottom: '20px' }}>
           <h4 style={{ margin: 0, color: '#1e293b', fontSize: '16px', fontWeight: 'bold' }}>⚙️ Konfigurasi Ujian</h4>
         </div>
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '8px' }}>PAKET SOAL</label>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '8px' }}>PILIH PAKET SOAL</label>
             <select 
               value={selectedPaket}
               onChange={(e) => setSelectedPaket(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontSize: '14px' }}
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }}
             >
               <option value="">-- Pilih Paket --</option>
               {asesmens.map(a => <option key={a.id} value={a.id}>{a.nama_asesmen}</option>)}
             </select>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
-              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '8px' }}>KELAS</label>
-              <select 
-                onChange={(e) => setSelectedKelas(e.target.value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-              >
+              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '8px' }}>KELAS</label>
+              <select onChange={(e) => setSelectedKelas(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                 <option value="">Semua</option>
                 {[...new Set(students.map(s => s.kelas))].map(k => <option key={k} value={k}>{k}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '8px' }}>DURASI</label>
-              <input type="number" placeholder="60" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }} />
+              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '8px' }}>DURASI</label>
+              <input type="number" placeholder="60" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
             </div>
           </div>
 
           <div style={{ backgroundColor: '#f0f9ff', padding: '20px', borderRadius: '12px', textAlign: 'center', border: '2px dashed #bae6fd' }}>
-            <span style={{ fontSize: '11px', color: '#0369a1', fontWeight: 'bold', letterSpacing: '1px' }}>TOKEN AKTIF</span>
-            <div style={{ fontSize: '36px', fontWeight: 'bold', letterSpacing: '6px', color: '#0c4a6e', margin: '8px 0', fontFamily: 'monospace' }}>
+            <span style={{ fontSize: '11px', color: '#0369a1', fontWeight: 'bold' }}>TOKEN AKTIF</span>
+            <div style={{ fontSize: '36px', fontWeight: 'bold', letterSpacing: '5px', color: '#0c4a6e', margin: '10px 0', fontFamily: 'monospace' }}>
               {token || '------'}
             </div>
-            <button onClick={generateToken} style={{ color: '#3b82f6', border: 'none', background: 'none', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline' }}>
-              🔄 Reset Token Baru
-            </button>
+            <button onClick={generateToken} style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '12px' }}>🔄 Acak Token</button>
           </div>
 
           <button 
@@ -796,66 +795,58 @@ const resetAsesmen = (nama: string) => {
             style={{ 
               width: '100%', padding: '16px', borderRadius: '10px', border: 'none', 
               backgroundColor: isAsesmenRunning ? '#ef4444' : '#1e293b', 
-              color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', transition: '0.2s'
+              color: 'white', fontWeight: 'bold', cursor: 'pointer' 
             }}
           >
-            {isAsesmenRunning ? '🛑 HENTIKAN ASESMEN' : '🚀 MULAI ASESMEN SEKARANG'}
+            {isAsesmenRunning ? '🛑 HENTIKAN ASESMEN' : '🚀 MULAI ASESMEN'}
           </button>
         </div>
       </div>
 
-      {/* 2. KOTAK MONITORING (Sisi Kanan) */}
+      {/* BOX KANAN: TABEL MONITORING */}
       <div style={{ 
-        backgroundColor: 'white', 
-        padding: '24px', 
-        borderRadius: '12px', 
-        border: '1px solid #e2e8f0', 
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)' 
+        backgroundColor: 'white', padding: '24px', borderRadius: '12px', 
+        border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' 
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
-          <h4 style={{ margin: 0, color: '#1e293b', fontWeight: 'bold', fontSize: '16px' }}>🖥️ Live Monitoring Peserta</h4>
+          <h4 style={{ margin: 0, color: '#1e293b', fontWeight: 'bold' }}>🖥️ Monitoring Real-time</h4>
           <input 
-            placeholder="Cari nama peserta..." 
-            value={searchSiswa}
+            placeholder="Cari nama..." 
+            style={{ padding: '10px 15px', borderRadius: '25px', border: '1px solid #cbd5e1', width: '250px' }} 
             onChange={(e) => setSearchSiswa(e.target.value)}
-            style={{ padding: '10px 18px', borderRadius: '25px', border: '1px solid #cbd5e1', fontSize: '13px', width: '280px', outline: 'none' }} 
           />
         </div>
 
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ textAlign: 'left', backgroundColor: '#f8fafc', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                <th style={{ padding: '15px 12px', borderBottom: '2px solid #f1f5f9' }}>Nama Peserta</th>
-                <th style={{ padding: '15px 12px', borderBottom: '2px solid #f1f5f9', textAlign: 'center' }}>Kelas</th>
-                <th style={{ padding: '15px 12px', borderBottom: '2px solid #f1f5f9', textAlign: 'center' }}>Status</th>
-                <th style={{ padding: '15px 12px', borderBottom: '2px solid #f1f5f9' }}>Progres</th>
-                <th style={{ padding: '15px 12px', borderBottom: '2px solid #f1f5f9', textAlign: 'center' }}>Aksi</th>
+              <tr style={{ textAlign: 'left', backgroundColor: '#f8fafc', color: '#64748b', fontSize: '12px' }}>
+                <th style={{ padding: '15px 12px' }}>PESERTA</th>
+                <th style={{ padding: '15px 12px', textAlign: 'center' }}>KELAS</th>
+                <th style={{ padding: '15px 12px', textAlign: 'center' }}>STATUS</th>
+                <th style={{ padding: '15px 12px' }}>PROGRES</th>
+                <th style={{ padding: '15px 12px', textAlign: 'center' }}>AKSI</th>
               </tr>
             </thead>
-            <tbody style={{ fontSize: '14px' }}>
+            <tbody>
               {students.filter(s => s.nama_lengkap.toLowerCase().includes(searchSiswa.toLowerCase())).map((s, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', transition: '0.2s' }}>
+                <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '15px 12px' }}>
-                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{s.nama_lengkap}</div>
-                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>{s.no_peserta}</div>
+                    <div style={{ fontWeight: 'bold' }}>{s.nama_lengkap}</div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{s.no_peserta}</div>
                   </td>
+                  <td style={{ padding: '15px 12px', textAlign: 'center' }}>{s.kelas}</td>
                   <td style={{ padding: '15px 12px', textAlign: 'center' }}>
-                    <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px' }}>{s.kelas}</span>
+                    <span style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '11px' }}>● ONLINE</span>
                   </td>
-                  <td style={{ padding: '15px 12px', textAlign: 'center' }}>
-                    <span style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '12px' }}>● ONLINE</span>
-                  </td>
-                  <td style={{ padding: '15px 12px', width: '220px' }}>
-                    <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+                  <td style={{ padding: '15px 12px' }}>
+                    <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '10px' }}>
                       <div style={{ width: '0%', height: '100%', backgroundColor: '#0ea5e9' }}></div>
                     </div>
                   </td>
                   <td style={{ padding: '15px 12px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                      <button style={{ background: '#eab308', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }} title="Reset Login">🔄</button>
-                      <button style={{ background: '#ef4444', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }} title="Hapus">🗑️</button>
-                    </div>
+                    <button style={{ background: '#eab308', border: 'none', color: 'white', padding: '6px', borderRadius: '6px', marginRight: '5px' }}>🔄</button>
+                    <button style={{ background: '#ef4444', border: 'none', color: 'white', padding: '6px', borderRadius: '6px' }}>🗑️</button>
                   </td>
                 </tr>
               ))}
