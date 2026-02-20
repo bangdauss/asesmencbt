@@ -756,22 +756,43 @@ const resetAsesmen = (nama: string) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
             <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '5px' }}>PAKET SOAL</label>
-            <select style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-              <option value="">-- Pilih Paket --</option>
-              {asesmens.map(a => <option key={a.id}>{a.nama_asesmen}</option>)}
-            </select>
+            <select
+  value={selectedPaket}
+  onChange={(e) => setSelectedPaket(e.target.value)}
+  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+>
+  <option value="">-- Pilih Paket --</option>
+  {asesmens.map(a => (
+    <option key={a.id} value={a.id}>
+      [{a.kode_asesmen}] {a.nama_asesmen}
+    </option>
+  ))}
+</select>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '5px' }}>KELAS</label>
-              <select style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                <option>Semua</option>
-              </select>
+              <select
+  value={selectedKelas}
+  onChange={(e) => setSelectedKelas(e.target.value)}
+  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+>
+  <option value="">Semua</option>
+  {[...new Set(students.map(s => s.kelas))].map(kelas => (
+    <option key={kelas} value={kelas}>{kelas}</option>
+  ))}
+</select>
             </div>
             <div>
               <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '5px' }}>DURASI</label>
-              <input type="number" placeholder="60" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+              <input
+  type="number"
+  value={durasi}
+  onChange={(e) => setDurasi(Number(e.target.value))}
+  placeholder="60"
+  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+/>
             </div>
           </div>
 
@@ -781,9 +802,21 @@ const resetAsesmen = (nama: string) => {
             <button onClick={generateToken} style={{ color: '#3b82f6', border: 'none', background: 'none', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}>Acak Token Baru</button>
           </div>
 
-          <button style={{ width: '100%', padding: '14px', borderRadius: '10px', border: 'none', backgroundColor: '#1e293b', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
-            MULAI SEKARANG
-          </button>
+          <button
+  onClick={handleToggleAsesmen}
+  style={{
+    width: '100%',
+    padding: '14px',
+    borderRadius: '10px',
+    border: 'none',
+    backgroundColor: isAsesmenRunning ? '#ef4444' : '#1e293b',
+    color: 'white',
+    fontWeight: 'bold',
+    cursor: 'pointer'
+  }}
+>
+  {isAsesmenRunning ? 'HENTIKAN ASESMEN' : 'MULAI SEKARANG'}
+</button>
         </div>
       </div>
 
