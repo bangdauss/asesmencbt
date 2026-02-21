@@ -46,6 +46,9 @@ export default function DashboardPage() {
 const [token, setToken] = useState('------')
 const [selectedKelas, setSelectedKelas] = useState('')
 const [selectedPaket, setSelectedPaket] = useState('')
+useEffect(() => {
+  fetchMonitoring()
+}, [selectedPaket])
 const [durasi, setDurasi] = useState(0)
 const [isAsesmenRunning, setIsAsesmenRunning] = useState(false)
 const [searchSiswa, setSearchSiswa] = useState('')
@@ -61,6 +64,25 @@ const handleHapusMonitoring = (id: any) => {
   }
 }
 const [monitoringData, setMonitoringData] = useState<any[]>([]) // Data siswa + progres
+const fetchMonitoring = async () => {
+  if (!selectedPaket) return
+
+  const { data, error } = await supabase
+    .from('laporan_ujian')
+    .select(`
+      *,
+      data_siswa (
+        nama_lengkap,
+        kelas
+      )
+    `)
+    .eq('id_asesmen', parseInt(selectedPaket))
+    .order('mulai_pada', { ascending: false })
+
+  if (!error && data) {
+    setMonitoringData(data)
+  }
+}
    
 
   // --- FETCH DATA (UTUH + DATA BARU) ---
@@ -405,35 +427,34 @@ const handleToggleAsesmen = async () => {
   if (durasi <= 0) return alert("Silakan tentukan durasi ujian!");
 
   if (!isAsesmenRunning) {
-    // Jika posisi OFF lalu diklik:
-    if (confirm("Mulai Asesmen sekarang? Ini akan membersihkan tabel monitoring sebelumnya.")) {
+    if (confirm("Mulai Asesmen sekarang? Ini akan membersihkan monitoring sebelumnya.")) {
       try {
-        // --- PROSES CLEAR DATA PESERTA DI DATABASE ---
+        // Gunakan 'data_siswa' sesuai dengan baris 59 di file Anda
         const { error } = await supabase
-          .from('data_siswa')
+          .from('data_siswa') 
           .update({ 
-            status: false,  // Reset status login jadi offline
-            selesai: false  // Reset status selesai jadi belum selesai
+            status: false, 
+            selesai: false 
           })
-          .neq('id', '0'); // Trik supaya mereset semua baris yang id-nya bukan '0'
+          .neq('id', 0);
 
         if (error) throw error;
 
-        // --- LANJUTKAN MULAI UJIAN ---
         setIsAsesmenRunning(true);
         generateToken(); 
-        fetchData(); // Refresh data agar tabel langsung kosong/clear
+        
+        // Panggil fetchData() sesuai baris 56, bukan fetchStudents
+        fetchData(); 
         alert("Ujian dimulai & monitoring dibersihkan!");
       } catch (err) {
         console.error(err);
-        alert("Gagal mereset data monitoring. Periksa koneksi atau database.");
+        alert("Gagal mereset data monitoring. Pastikan kolom 'selesai' ada di tabel data_siswa.");
       }
     }
   } else {
-    // Jika posisi ON lalu diklik:
-    if (confirm("Hentikan Asesmen? Semua siswa yang sedang ujian akan diputus aksesnya.")) {
+    if (confirm("Hentikan Asesmen? Semua siswa yang sedang ujian akan diputus aksenya.")) {
       setIsAsesmenRunning(false);
-      setToken('------'); // Reset token
+      setToken('------');
     }
   }
 };
@@ -902,60 +923,61 @@ const resetAsesmen = (nama: string) => {
               </tr>
             </thead>
             <tbody>
-              {students
-  .filter(s => {
-    // 1. Syarat Utama: Hanya muncul jika Sedang Login ATAU Sudah Selesai
-    // Ini yang bikin tabel OTOMATIS KOSONG saat kamu klik 'Mulai Asesmen'
-    const isVisible = s.status === true || s.selesai === true;
+              {monitoringData
+  .filter(m => {
+    const matchNama =
+      m.data_siswa?.nama_lengkap
+        ?.toLowerCase()
+        .includes(searchSiswa.toLowerCase())
 
-    // 2. Syarat Kelas: Harus cocok dengan dropdown KELAS (jika dipilih)
-    const matchKelas = selectedKelas === '' || s.kelas === selectedKelas;
-
-    // 3. Syarat Nama: Harus cocok dengan kotak CARI SISWA
-    const matchNama = s.nama_lengkap.toLowerCase().includes(searchSiswa.toLowerCase());
-
-    return isVisible && matchKelas && matchNama;
+    return matchNama
   })
-  .map((s, i) => (
-    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+  .map((m) => (
+    <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
       <td style={{ padding: '12px' }}>
-        <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{s.nama_lengkap}</div>
-        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{s.no_peserta}</div>
+        <div style={{ fontWeight: 'bold', color: '#1e293b' }}>
+          {m.data_siswa?.nama_lengkap}
+        </div>
+        <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+          {m.no_peserta}
+        </div>
       </td>
-      <td style={{ padding: '12px', textAlign: 'center' }}>{s.kelas}</td>
-      
-      {/* Kolom Status Pintar: Muncul SELESAI atau ONLINE */}
+
       <td style={{ padding: '12px', textAlign: 'center' }}>
-        {s.selesai ? (
-          <span style={{ backgroundColor: '#f1f5f9', color: '#64748b', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' }}>✅ SELESAI</span>
+        {m.data_siswa?.kelas}
+      </td>
+
+      <td style={{ padding: '12px', textAlign: 'center' }}>
+        {m.status === 'selesai' ? (
+          <span style={{
+            backgroundColor: '#f1f5f9',
+            color: '#64748b',
+            padding: '4px 8px',
+            borderRadius: '6px',
+            fontSize: '11px',
+            fontWeight: 'bold'
+          }}>
+            ✅ SELESAI
+          </span>
         ) : (
-          <span style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '11px' }}>● ONLINE</span>
+          <span style={{
+            color: '#22c55e',
+            fontWeight: 'bold',
+            fontSize: '11px'
+          }}>
+            ● MENGERJAKAN
+          </span>
         )}
       </td>
 
       <td style={{ padding: '12px' }}>
-        <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '10px' }}>
-          {/* Progress bar otomatis 100% kalau sudah selesai */}
-          <div style={{ width: s.selesai ? '100%' : '0%', height: '100%', backgroundColor: s.selesai ? '#22c55e' : '#0ea5e9', borderRadius: '10px' }}></div>
-        </div>
+        {m.status === 'selesai'
+          ? `Nilai: ${m.nilai}`
+          : 'Sedang mengerjakan...'}
       </td>
-      <td style={{ padding: '15px 12px', textAlign: 'center' }}>
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-          <button 
-            onClick={() => handleResetLogin(s.id)} 
-            style={{ background: '#eab308', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-            title="Reset Login"
-          >
-            🔄
-          </button>
-          <button 
-            onClick={() => handleHapusMonitoring(s.id)} 
-            style={{ background: '#ef4444', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-            title="Keluarkan"
-          >
-            🗑️
-          </button>
-        </div>
+
+      <td style={{ padding: '12px', textAlign: 'center' }}>
+        -
       </td>
     </tr>
   ))}
