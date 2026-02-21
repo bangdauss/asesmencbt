@@ -419,12 +419,6 @@ const handleToggleAsesmen = () => {
   }
 };
 
-const handleResetLogin = async (id: any) => {
-  if (confirm('Reset login peserta ini?')) {
-    alert('Berhasil reset login!');
-  }
-}
-
 
 // 3. Fungsi Reset Login (Tombol Kuning)
 const resetLogin = (nama: string) => {
