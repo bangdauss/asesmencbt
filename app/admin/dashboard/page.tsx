@@ -48,7 +48,7 @@ const [selectedKelas, setSelectedKelas] = useState('')
 const [selectedPaket, setSelectedPaket] = useState('')
 useEffect(() => {
   fetchMonitoring()
-}, [selectedPaket])
+}, [selectedPaket, selectedKelas])
 const [durasi, setDurasi] = useState(0)
 const [isAsesmenRunning, setIsAsesmenRunning] = useState(false)
 const [searchSiswa, setSearchSiswa] = useState('')
@@ -65,9 +65,9 @@ const handleHapusMonitoring = (id: any) => {
 }
 const [monitoringData, setMonitoringData] = useState<any[]>([]) // Data siswa + progres
 const fetchMonitoring = async () => {
-  if (!selectedPaket) return
+  if (!selectedPaket) return;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('laporan_ujian')
     .select(`
       *,
@@ -77,12 +77,19 @@ const fetchMonitoring = async () => {
       )
     `)
     .eq('id_asesmen', parseInt(selectedPaket))
-    .order('mulai_pada', { ascending: false })
+    .order('mulai_pada', { ascending: false });
+
+  // ✅ Tambahkan filter kelas kalau dipilih
+  if (selectedKelas) {
+    query = query.eq('data_siswa.kelas', selectedKelas);
+  }
+
+  const { data, error } = await query;
 
   if (!error && data) {
-    setMonitoringData(data)
+    setMonitoringData(data);
   }
-}
+};
    
 
   // --- FETCH DATA (UTUH + DATA BARU) ---
@@ -427,31 +434,26 @@ const handleToggleAsesmen = async () => {
   if (durasi <= 0) return alert("Silakan tentukan durasi ujian!");
 
   if (!isAsesmenRunning) {
-    if (confirm("Mulai Asesmen sekarang? Ini akan membersihkan monitoring sebelumnya.")) {
-      try {
-        // Gunakan 'data_siswa' sesuai dengan baris 59 di file Anda
-        const { error } = await supabase
-          .from('data_siswa') 
-          .update({ 
-            status: false, 
-            selesai: false 
-          })
-          .neq('id', 0);
+  if (confirm("Mulai Asesmen sekarang? Ini akan membersihkan monitoring sebelumnya.")) {
+    try {
+      const { error } = await supabase
+        .from('laporan_ujian')
+        .delete()
+        .eq('id_asesmen', parseInt(selectedPaket));
 
-        if (error) throw error;
+      if (error) throw error;
 
-        setIsAsesmenRunning(true);
-        generateToken(); 
-        
-        // Panggil fetchData() sesuai baris 56, bukan fetchStudents
-        fetchData(); 
-        alert("Ujian dimulai & monitoring dibersihkan!");
-      } catch (err) {
-        console.error(err);
-        alert("Gagal mereset data monitoring. Pastikan kolom 'selesai' ada di tabel data_siswa.");
-      }
+      setIsAsesmenRunning(true);
+      generateToken();
+      fetchMonitoring();
+
+      alert("Ujian dimulai & monitoring dibersihkan!");
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mereset monitoring. Cek tabel laporan_ujian.");
     }
-  } else {
+  }
+} else {
     if (confirm("Hentikan Asesmen? Semua siswa yang sedang ujian akan diputus aksenya.")) {
       setIsAsesmenRunning(false);
       setToken('------');
