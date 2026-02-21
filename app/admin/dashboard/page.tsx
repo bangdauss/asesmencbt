@@ -422,7 +422,7 @@ const handleToggleAsesmen = async () => {
         // --- LANJUTKAN MULAI UJIAN ---
         setIsAsesmenRunning(true);
         generateToken(); 
-        fetchStudents(); // Refresh data agar tabel langsung kosong/clear
+        fetchData(); // Refresh data agar tabel langsung kosong/clear
         alert("Ujian dimulai & monitoring dibersihkan!");
       } catch (err) {
         console.error(err);
