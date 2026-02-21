@@ -399,20 +399,39 @@ const generateToken = () => {
   setToken(result);
 };
 // 2. Fungsi untuk Mulai atau Menghentikan Asesmen
-const handleToggleAsesmen = () => {
+const handleToggleAsesmen = async () => {
   // Validasi: Harus pilih paket dan isi durasi dulu
   if (!selectedPaket) return alert("Silakan pilih Paket Soal terlebih dahulu!");
   if (durasi <= 0) return alert("Silakan tentukan durasi ujian!");
 
   if (!isAsesmenRunning) {
     // Jika posisi OFF lalu diklik:
-    if (confirm("Mulai Asesmen sekarang?")) {
-      setIsAsesmenRunning(true);
-      generateToken(); // Langsung rilis token otomatis saat mulai
+    if (confirm("Mulai Asesmen sekarang? Ini akan membersihkan tabel monitoring sebelumnya.")) {
+      try {
+        // --- PROSES CLEAR DATA PESERTA DI DATABASE ---
+        const { error } = await supabase
+          .from('students')
+          .update({ 
+            status: false,  // Reset status login jadi offline
+            selesai: false  // Reset status selesai jadi belum selesai
+          })
+          .neq('id', '0'); // Trik supaya mereset semua baris yang id-nya bukan '0'
+
+        if (error) throw error;
+
+        // --- LANJUTKAN MULAI UJIAN ---
+        setIsAsesmenRunning(true);
+        generateToken(); 
+        fetchStudents(); // Refresh data agar tabel langsung kosong/clear
+        alert("Ujian dimulai & monitoring dibersihkan!");
+      } catch (err) {
+        console.error(err);
+        alert("Gagal mereset data monitoring. Periksa koneksi atau database.");
+      }
     }
   } else {
     // Jika posisi ON lalu diklik:
-    if (confirm("Hentikan Asesmen? Semua siswa yang sedang ujian akan diputus aksenya.")) {
+    if (confirm("Hentikan Asesmen? Semua siswa yang sedang ujian akan diputus aksesnya.")) {
       setIsAsesmenRunning(false);
       setToken('------'); // Reset token
     }
@@ -883,40 +902,63 @@ const resetAsesmen = (nama: string) => {
               </tr>
             </thead>
             <tbody>
-              {students.map((s, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px' }}>
-                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{s.nama_lengkap}</div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{s.no_peserta}</div>
-                  </td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>{s.kelas}</td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}><span style={{ color: '#22c55e', fontWeight: 'bold' }}>● ONLINE</span></td>
-                  <td style={{ padding: '12px' }}>
-                    <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '10px' }}>
-                      <div style={{ width: '0%', height: '100%', backgroundColor: '#0ea5e9' }}></div>
-                    </div>
-                  </td>
-                  <td style={{ padding: '15px 12px', textAlign: 'center' }}>
-  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-    {/* Tombol Reset */}
-    <button 
-      onClick={() => handleResetLogin(s.id)} 
-      style={{ background: '#eab308', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-    >
-      🔄
-    </button>
+              {students
+  .filter(s => {
+    // 1. Syarat Utama: Hanya muncul jika Sedang Login ATAU Sudah Selesai
+    // Ini yang bikin tabel OTOMATIS KOSONG saat kamu klik 'Mulai Asesmen'
+    const isVisible = s.status === true || s.selesai === true;
 
-    {/* Tombol Hapus */}
-    <button 
-      onClick={() => handleHapusMonitoring(s.id)} 
-      style={{ background: '#ef4444', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-    >
-      🗑️
-    </button>
-  </div>
-</td>
-                </tr>
-              ))}
+    // 2. Syarat Kelas: Harus cocok dengan dropdown KELAS (jika dipilih)
+    const matchKelas = selectedKelas === '' || s.kelas === selectedKelas;
+
+    // 3. Syarat Nama: Harus cocok dengan kotak CARI SISWA
+    const matchNama = s.nama_lengkap.toLowerCase().includes(searchSiswa.toLowerCase());
+
+    return isVisible && matchKelas && matchNama;
+  })
+  .map((s, i) => (
+    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+      <td style={{ padding: '12px' }}>
+        <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{s.nama_lengkap}</div>
+        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{s.no_peserta}</div>
+      </td>
+      <td style={{ padding: '12px', textAlign: 'center' }}>{s.kelas}</td>
+      
+      {/* Kolom Status Pintar: Muncul SELESAI atau ONLINE */}
+      <td style={{ padding: '12px', textAlign: 'center' }}>
+        {s.selesai ? (
+          <span style={{ backgroundColor: '#f1f5f9', color: '#64748b', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' }}>✅ SELESAI</span>
+        ) : (
+          <span style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '11px' }}>● ONLINE</span>
+        )}
+      </td>
+
+      <td style={{ padding: '12px' }}>
+        <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '10px' }}>
+          {/* Progress bar otomatis 100% kalau sudah selesai */}
+          <div style={{ width: s.selesai ? '100%' : '0%', height: '100%', backgroundColor: s.selesai ? '#22c55e' : '#0ea5e9', borderRadius: '10px' }}></div>
+        </div>
+      </td>
+      <td style={{ padding: '15px 12px', textAlign: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+          <button 
+            onClick={() => handleResetLogin(s.id)} 
+            style={{ background: '#eab308', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+            title="Reset Login"
+          >
+            🔄
+          </button>
+          <button 
+            onClick={() => handleHapusMonitoring(s.id)} 
+            style={{ background: '#ef4444', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+            title="Keluarkan"
+          >
+            🗑️
+          </button>
+        </div>
+      </td>
+    </tr>
+  ))}
             </tbody>
           </table>
         </div>
