@@ -425,14 +425,6 @@ const handleResetLogin = async (id: any) => {
   }
 }
 
-const handleHapusMonitoring = (id: any) => {
-  if (confirm('Hapus dari monitoring?')) {
-    alert('Peserta dihapus');
-  }
-}
-
-
-
 
 // 3. Fungsi Reset Login (Tombol Kuning)
 const resetLogin = (nama: string) => {
