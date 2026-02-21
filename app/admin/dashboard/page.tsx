@@ -410,7 +410,7 @@ const handleToggleAsesmen = async () => {
       try {
         // --- PROSES CLEAR DATA PESERTA DI DATABASE ---
         const { error } = await supabase
-          .from('students')
+          .from('data_siswa')
           .update({ 
             status: false,  // Reset status login jadi offline
             selesai: false  // Reset status selesai jadi belum selesai
