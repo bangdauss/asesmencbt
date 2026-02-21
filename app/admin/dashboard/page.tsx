@@ -730,10 +730,35 @@ const resetAsesmen = (nama: string) => {
   <div style={{ width: '100%', padding: '0px' }}>
     
     {/* HEADER SECTION - Sejajar sempurna dengan konten */}
-    <div style={{ marginBottom: '25px' }}>
-      <h2 style={{ margin: 0, color: '#1e293b', fontSize: '24px', fontWeight: 'bold' }}>Panel Administrator</h2>
-      <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>Kontrol penuh jalannya asesmen dan monitoring peserta secara langsung.</p>
-    </div>
+    {/* 1. HEADER SECTION DENGAN BACKGROUND PUTIH */}
+<div style={{ 
+  backgroundColor: 'white', 
+  padding: '20px 25px', 
+  borderRadius: '12px', 
+  marginBottom: '20px', 
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center'
+}}>
+  <div>
+    <h2 style={{ margin: 0, color: '#1e293b', fontSize: '22px', fontWeight: 'bold' }}>Panel Administrator</h2>
+    <p style={{ margin: 0, color: '#64748b', fontSize: '13px', marginTop: '4px' }}>
+      Kontrol penuh jalannya asesmen dan monitoring peserta secara langsung.
+    </p>
+  </div>
+  <div style={{ 
+    backgroundColor: '#f1f5f9', 
+    color: '#64748b', 
+    padding: '5px 12px', 
+    borderRadius: '20px', 
+    fontSize: '12px', 
+    fontWeight: 'bold' 
+  }}>
+    V.2026.1
+  </div>
+</div>
 
     {/* GRID KONTEN - Menggunakan seluruh sisa lebar layar */}
     <div style={{ 
