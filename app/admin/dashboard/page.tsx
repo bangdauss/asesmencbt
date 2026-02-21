@@ -49,6 +49,17 @@ const [selectedPaket, setSelectedPaket] = useState('')
 const [durasi, setDurasi] = useState(0)
 const [isAsesmenRunning, setIsAsesmenRunning] = useState(false)
 const [searchSiswa, setSearchSiswa] = useState('')
+const handleResetLogin = async (id: any) => {
+  if (confirm('Reset login peserta ini?')) {
+    alert('Berhasil reset login untuk siswa ID: ' + id);
+  }
+}
+
+const handleHapusMonitoring = (id: any) => {
+  if (confirm('Hapus peserta ini dari daftar monitoring?')) {
+    alert('Peserta berhasil dihapus');
+  }
+}
 const [monitoringData, setMonitoringData] = useState<any[]>([]) // Data siswa + progres
    
 
@@ -407,6 +418,22 @@ const handleToggleAsesmen = () => {
     }
   }
 };
+
+const handleResetLogin = async (id: any) => {
+  if (confirm('Reset login peserta ini?')) {
+    alert('Berhasil reset login!');
+  }
+}
+
+const handleHapusMonitoring = (id: any) => {
+  if (confirm('Hapus dari monitoring?')) {
+    alert('Peserta dihapus');
+  }
+}
+
+
+
+
 // 3. Fungsi Reset Login (Tombol Kuning)
 const resetLogin = (nama: string) => {
   if (confirm(`Izinkan ${nama} untuk login kembali?`)) {
@@ -883,10 +910,25 @@ const resetAsesmen = (nama: string) => {
                       <div style={{ width: '0%', height: '100%', backgroundColor: '#0ea5e9' }}></div>
                     </div>
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>
-                    <button style={{ background: '#eab308', border: 'none', color: 'white', padding: '6px', borderRadius: '6px', marginRight: '4px' }}>🔄</button>
-                    <button style={{ background: '#ef4444', border: 'none', color: 'white', padding: '6px', borderRadius: '6px' }}>🗑️</button>
-                  </td>
+                  <td style={{ padding: '15px 12px', textAlign: 'center' }}>
+  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+    {/* Tombol Reset */}
+    <button 
+      onClick={() => handleResetLogin(s.id)} 
+      style={{ background: '#eab308', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+    >
+      🔄
+    </button>
+
+    {/* Tombol Hapus */}
+    <button 
+      onClick={() => handleHapusMonitoring(s.id)} 
+      style={{ background: '#ef4444', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+    >
+      🗑️
+    </button>
+  </div>
+</td>
                 </tr>
               ))}
             </tbody>
