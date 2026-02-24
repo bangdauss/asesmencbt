@@ -429,34 +429,59 @@ const generateToken = () => {
 };
 // 2. Fungsi untuk Mulai atau Menghentikan Asesmen
 const handleToggleAsesmen = async () => {
-  // Validasi: Harus pilih paket dan isi durasi dulu
   if (!selectedPaket) return alert("Silakan pilih Paket Soal terlebih dahulu!");
   if (durasi <= 0) return alert("Silakan tentukan durasi ujian!");
 
   if (!isAsesmenRunning) {
-  if (confirm("Mulai Asesmen sekarang? Ini akan membersihkan monitoring sebelumnya.")) {
-    try {
-      const { error } = await supabase
-        .from('laporan_ujian')
-        .delete()
-        .eq('id_asesmen', parseInt(selectedPaket));
+    if (confirm("Mulai Asesmen sekarang?")) {
 
-      if (error) throw error;
+      // 1️⃣ Generate token baru
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let newToken = '';
+      for (let i = 0; i < 6; i++) {
+        newToken += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
 
-      setIsAsesmenRunning(true);
-      generateToken();
-      fetchMonitoring();
+      try {
+        // 2️⃣ Nonaktifkan semua token lama
+        await supabase
+          .from('token_ujian')
+          .update({ status: false })
+          .neq('id', '00000000-0000-0000-0000-000000000000');
 
-      alert("Ujian dimulai & monitoring dibersihkan!");
-    } catch (err) {
-      console.error(err);
-      alert("Gagal mereset monitoring. Cek tabel laporan_ujian.");
+        // 3️⃣ Insert token baru
+        const { error } = await supabase
+          .from('token_ujian')
+          .insert([{
+            id_asesmen: parseInt(selectedPaket),
+            token: newToken,
+            status: true
+          }]);
+
+        if (error) throw error;
+
+        setToken(newToken);
+        setIsAsesmenRunning(true);
+
+        alert("Asesmen dimulai! Token aktif: " + newToken);
+
+      } catch (err: any) {
+        alert("Gagal mulai asesmen: " + err.message);
+      }
     }
-  }
-} else {
-    if (confirm("Hentikan Asesmen? Semua siswa yang sedang ujian akan diputus aksenya.")) {
+
+  } else {
+    if (confirm("Hentikan Asesmen?")) {
+
+      await supabase
+        .from('token_ujian')
+        .update({ status: false })
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
       setIsAsesmenRunning(false);
       setToken('------');
+
+      alert("Asesmen dihentikan!");
     }
   }
 };

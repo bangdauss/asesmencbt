@@ -39,11 +39,22 @@ export default function LoginPeserta() {
 
       // 2. Verifikasi Token (Logika: Ambil token aktif dari localStorage atau DB)
       // Catatan: Admin menyimpan token di sistem saat klik "Mulai"
-      const tokenAktif = localStorage.getItem('token_ujian') 
-      if (formData.token.toUpperCase() !== tokenAktif) {
-        alert('Token Ujian tidak valid atau belum dirilis oleh Admin!')
-        return
-      }
+      // Ambil token aktif dari database
+const { data: tokenData, error: tokenError } = await supabase
+  .from('token_ujian')
+  .select('*')
+  .eq('status', true)
+  .single()
+
+if (tokenError || !tokenData) {
+  alert('Token belum dirilis oleh Admin!')
+  return
+}
+
+if (formData.token.toUpperCase() !== tokenData.token) {
+  alert('Token salah!')
+  return
+}
 
       // 3. Update Status Siswa jadi TRUE agar muncul di Monitoring Admin
       await supabase
