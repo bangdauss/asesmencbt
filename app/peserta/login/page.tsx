@@ -12,7 +12,10 @@ const supabase = createClient(
 
 export default function LoginPeserta() {
   const router = useRouter()
+
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
   const [formData, setFormData] = useState({
     no_peserta: '',
     password: '',
@@ -24,7 +27,7 @@ export default function LoginPeserta() {
     setLoading(true)
 
     try {
-      // 1. Verifikasi Nomor Peserta & Password di tabel 'data_siswa'
+      // 1️⃣ Verifikasi Nomor Peserta & Password
       const { data: siswa, error } = await supabase
         .from('data_siswa')
         .select('*')
@@ -34,36 +37,40 @@ export default function LoginPeserta() {
 
       if (error || !siswa) {
         alert('Nomor Peserta atau Password salah!')
+        setLoading(false)
         return
       }
 
-      // 2. Verifikasi Token (Logika: Ambil token aktif dari localStorage atau DB)
-      // Catatan: Admin menyimpan token di sistem saat klik "Mulai"
-      // Ambil token aktif dari database
-const { data: tokenData, error: tokenError } = await supabase
-  .from('token_ujian')
-  .select('*')
-  .eq('status', true)
-  .single()
+      // 2️⃣ Ambil Token Aktif dari Database
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('token_ujian')
+        .select('token, id_asesmen')
+        .eq('status', true)
+        .single()
 
-if (tokenError || !tokenData) {
-  alert('Token belum dirilis oleh Admin!')
-  return
-}
+      if (tokenError || !tokenData) {
+        alert('Token belum dirilis oleh Admin!')
+        setLoading(false)
+        return
+      }
 
-if (formData.token.toUpperCase() !== tokenData.token) {
-  alert('Token salah!')
-  return
-}
+      if (formData.token.toUpperCase() !== tokenData.token) {
+        alert('Token salah!')
+        setLoading(false)
+        return
+      }
 
-      // 3. Update Status Siswa jadi TRUE agar muncul di Monitoring Admin
+      // 3️⃣ Update Status Siswa (Monitoring)
       await supabase
         .from('data_siswa')
         .update({ status: true })
         .eq('no_peserta', siswa.no_peserta)
 
-      // 4. Simpan Sesi & Masuk ke Ruang Ujian
+      // 4️⃣ Simpan Session & id_asesmen
       localStorage.setItem('siswa_session', JSON.stringify(siswa))
+      localStorage.setItem('id_asesmen', tokenData.id_asesmen.toString())
+
+      // 5️⃣ Redirect ke halaman ujian
       router.push('/peserta/ujian')
 
     } catch (err) {
@@ -78,7 +85,7 @@ if (formData.token.toUpperCase() !== tokenData.token) {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
       <div className="max-w-md w-full bg-white rounded-[2.5rem] p-10 shadow-2xl shadow-slate-200 border border-slate-100">
         
-        {/* Header Login */}
+        {/* Header */}
         <div className="text-center mb-10">
           <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -91,39 +98,61 @@ if (formData.token.toUpperCase() !== tokenData.token) {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
-          {/* Input No Peserta */}
+
+          {/* Nomor Peserta */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">Nomor Peserta</label>
+            <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">
+              Nomor Peserta
+            </label>
             <input 
               required
               type="text"
-              placeholder="Contoh: 50658001"
-              className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-amber-500 transition-all outline-none"
+              className="w-full px-5 py-4 bg-slate-50 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none"
               onChange={(e) => setFormData({...formData, no_peserta: e.target.value})}
             />
           </div>
 
-          {/* Input Password */}
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">Password</label>
+          {/* Password + Icon Mata */}
+          <div className="relative">
+            <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">
+              Password
+            </label>
+
             <input 
               required
-              type="password"
-              placeholder="••••••••"
-              className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-amber-500 transition-all outline-none"
+              type={showPassword ? "text" : "password"}
+              className="w-full px-5 py-4 bg-slate-50 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none pr-14"
               onChange={(e) => setFormData({...formData, password: e.target.value})}
             />
+
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-[46px] text-slate-400 hover:text-amber-500"
+            >
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-4-9-7 0-1.5 1-3.2 2.6-4.6m3.2-1.8A9.956 9.956 0 0112 5c5 0 9 4 9 7 0 1.3-.7 2.8-2 4m-3 3L3 3" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              )}
+            </button>
           </div>
 
-          {/* Input Token */}
+          {/* Token */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">Token Ujian</label>
+            <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">
+              Token Ujian
+            </label>
             <input 
               required
               type="text"
               maxLength={6}
-              placeholder="6 DIGIT"
-              className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-amber-500 transition-all outline-none text-center font-mono font-bold text-xl uppercase tracking-widest"
+              className="w-full px-5 py-4 bg-slate-50 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none text-center font-mono font-bold text-xl uppercase tracking-widest"
               onChange={(e) => setFormData({...formData, token: e.target.value})}
             />
           </div>
@@ -131,10 +160,11 @@ if (formData.token.toUpperCase() !== tokenData.token) {
           <button 
             type="submit"
             disabled={loading}
-            className="w-full py-5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl shadow-lg shadow-amber-200 transition-all duration-300 transform hover:-translate-y-1 active:scale-95 disabled:opacity-50"
+            className="w-full py-5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl transition-all disabled:opacity-50"
           >
             {loading ? 'Memverifikasi...' : 'MASUK KE RUANG UJIAN'}
           </button>
+
         </form>
 
         <p className="text-center text-slate-400 text-sm mt-8">
