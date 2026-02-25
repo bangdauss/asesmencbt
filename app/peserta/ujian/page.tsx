@@ -31,12 +31,12 @@ export default function HalamanUjian() {
         }
 
         const siswa = JSON.parse(siswaSession)
-        const idAsesmen = Number(idAsesmenRaw) // 🔥 FIX TIPE
+        const idAsesmen = Number(idAsesmenRaw)
 
         console.log('ID ASESMEN:', idAsesmen)
 
         // =============================
-        // 🔥 AMBIL LAPORAN
+        // 🔥 AMBIL / BUAT LAPORAN
         // =============================
         const { data: laporan, error } = await supabase
           .from('laporan_ujian')
@@ -52,7 +52,6 @@ export default function HalamanUjian() {
 
         let laporanFinal = laporan
 
-        // Jika belum ada → buat
         if (error || !laporan) {
           const { data: newLaporan } = await supabase
             .from('laporan_ujian')
@@ -88,16 +87,13 @@ export default function HalamanUjian() {
         // ⏳ TIMER
         // =============================
         const mulai = new Date(laporanFinal.mulai_pada).getTime()
-
         const durasiMenit =
           laporanFinal.data_asesmen?.durasi_menit ?? 60
 
-        const durasiMs = durasiMenit * 60 * 1000
-        const selesai = mulai + durasiMs
+        const selesai = mulai + durasiMenit * 60 * 1000
 
         interval = setInterval(() => {
-          const sekarang = Date.now()
-          const sisa = Math.floor((selesai - sekarang) / 1000)
+          const sisa = Math.floor((selesai - Date.now()) / 1000)
 
           if (sisa <= 0) {
             clearInterval(interval)
@@ -108,16 +104,14 @@ export default function HalamanUjian() {
         }, 1000)
 
         // =============================
-        // 🔥 AMBIL SOAL
+        // 🔥 AMBIL SOAL (FIX DISINI)
         // =============================
         const { data: soalData, error: soalError } =
           await supabase
-            .from('soal')
+            .from('bank_soal') // ✅ FIX
             .select('*')
             .eq('id_asesmen', idAsesmen)
             .order('id', { ascending: true })
-
-        console.log('SOAL DATA:', soalData)
 
         if (soalError) {
           console.error('Error ambil soal:', soalError)
@@ -125,6 +119,7 @@ export default function HalamanUjian() {
 
         if (soalData && soalData.length > 0) {
           setSoalList(soalData)
+          setCurrentIndex(0)
         } else {
           console.warn('Soal kosong!')
         }
@@ -160,6 +155,18 @@ export default function HalamanUjian() {
     router.push('/peserta/hasil')
   }
 
+  const handleNext = () => {
+    if (currentIndex < soalList.length - 1) {
+      setCurrentIndex(prev => prev + 1)
+    }
+  }
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1)
+    }
+  }
+
   const formatTime = (totalSeconds: number) => {
     const jam = Math.floor(totalSeconds / 3600)
     const menit = Math.floor((totalSeconds % 3600) / 60)
@@ -174,13 +181,15 @@ export default function HalamanUjian() {
     return <div className="p-10 text-center">Menyiapkan ujian...</div>
   }
 
-  if (soalList.length === 0) {
+  if (!soalList || soalList.length === 0) {
     return (
       <div className="p-10 text-center text-red-500">
         Tidak ada soal ditemukan.
       </div>
     )
   }
+
+  const soal = soalList[currentIndex]
 
   return (
     <div className="min-h-screen bg-white p-8">
@@ -197,9 +206,9 @@ export default function HalamanUjian() {
       {/* PERTANYAAN */}
       <div className="bg-slate-50 p-6 rounded-xl mb-6">
         <h2 className="font-bold mb-4">
-          Soal {currentIndex + 1}
+          Soal {currentIndex + 1} dari {soalList.length}
         </h2>
-        <p>{soalList[currentIndex].pertanyaan}</p>
+        <p>{soal.pertanyaan}</p>
       </div>
 
       {/* OPSI */}
@@ -209,7 +218,7 @@ export default function HalamanUjian() {
             key={opsi}
             className="w-full text-left p-4 border rounded-xl hover:bg-amber-50"
           >
-            {soalList[currentIndex][`opsi_${opsi}`]}
+            {soal[`opsi_${opsi}`]}
           </button>
         ))}
       </div>
@@ -235,7 +244,7 @@ export default function HalamanUjian() {
       <div className="flex justify-between mt-6">
         <button
           disabled={currentIndex === 0}
-          onClick={() => setCurrentIndex(currentIndex - 1)}
+          onClick={handlePrev}
           className="px-4 py-2 bg-slate-300 rounded-lg disabled:opacity-50"
         >
           Sebelumnya
@@ -243,7 +252,7 @@ export default function HalamanUjian() {
 
         <button
           disabled={currentIndex === soalList.length - 1}
-          onClick={() => setCurrentIndex(currentIndex + 1)}
+          onClick={handleNext}
           className="px-4 py-2 bg-amber-500 text-white rounded-lg disabled:opacity-50"
         >
           Berikutnya
