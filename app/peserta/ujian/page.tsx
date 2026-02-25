@@ -11,8 +11,12 @@ const supabase = createClient(
 
 export default function HalamanUjian() {
   const router = useRouter()
+
   const [loading, setLoading] = useState(true)
   const [sisaWaktu, setSisaWaktu] = useState(0)
+
+  const [soalList, setSoalList] = useState<any[]>([])
+  const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -28,7 +32,7 @@ export default function HalamanUjian() {
 
       const siswa = JSON.parse(siswaSession)
 
-      // 🔥 Ambil laporan + durasi dari data_asesmen
+      // 🔥 Ambil laporan + durasi
       const { data: laporan, error } = await supabase
         .from('laporan_ujian')
         .select(`
@@ -43,7 +47,7 @@ export default function HalamanUjian() {
 
       let laporanFinal = laporan
 
-      // ✅ Jika belum ada laporan → buat baru
+      // Jika belum ada laporan → buat baru
       if (error || !laporan) {
         const { data: newLaporan } = await supabase
           .from('laporan_ujian')
@@ -70,13 +74,12 @@ export default function HalamanUjian() {
         return
       }
 
-      // 🚨 Jika sudah selesai
       if (laporanFinal.status === 'selesai') {
         router.push('/peserta/hasil')
         return
       }
 
-      // 🎯 HITUNG TIMER
+      // 🎯 TIMER
       const mulai = new Date(laporanFinal.mulai_pada).getTime()
       const durasiMs =
         laporanFinal.data_asesmen.durasi_menit * 60 * 1000
@@ -93,6 +96,17 @@ export default function HalamanUjian() {
           setSisaWaktu(sisa)
         }
       }, 1000)
+
+      // 🔥 Ambil Soal
+      const { data: soalData } = await supabase
+        .from('soal')
+        .select('*')
+        .eq('id_asesmen', idAsesmen)
+        .order('id', { ascending: true })
+
+      if (soalData) {
+        setSoalList(soalData)
+      }
 
       setLoading(false)
     }
@@ -136,7 +150,7 @@ export default function HalamanUjian() {
 
   return (
     <div className="min-h-screen bg-white p-8">
-      
+
       {/* HEADER + TIMER */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-xl font-bold">Ujian Berlangsung</h1>
@@ -146,9 +160,68 @@ export default function HalamanUjian() {
         </div>
       </div>
 
-      <div>
-        <p>Soal akan tampil di sini...</p>
-      </div>
+      {soalList.length > 0 && (
+        <div className="space-y-6">
+
+          {/* PERTANYAAN */}
+          <div className="bg-slate-50 p-6 rounded-xl">
+            <h2 className="font-bold mb-4">
+              Soal {currentIndex + 1}
+            </h2>
+            <p>{soalList[currentIndex].pertanyaan}</p>
+          </div>
+
+          {/* OPSI */}
+          <div className="space-y-3">
+            {['a','b','c','d'].map((opsi) => (
+              <button
+                key={opsi}
+                className="w-full text-left p-4 border rounded-xl hover:bg-amber-50"
+              >
+                {soalList[currentIndex][`opsi_${opsi}`]}
+              </button>
+            ))}
+          </div>
+
+          {/* NAVIGASI NOMOR */}
+          <div className="flex flex-wrap gap-2 mt-6">
+            {soalList.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                className={`w-10 h-10 rounded-lg font-bold ${
+                  currentIndex === index
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-slate-200'
+                }`}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+
+          {/* NEXT PREV */}
+          <div className="flex justify-between mt-6">
+            <button
+              disabled={currentIndex === 0}
+              onClick={() => setCurrentIndex(currentIndex - 1)}
+              className="px-4 py-2 bg-slate-300 rounded-lg disabled:opacity-50"
+            >
+              Sebelumnya
+            </button>
+
+            <button
+              disabled={currentIndex === soalList.length - 1}
+              onClick={() => setCurrentIndex(currentIndex + 1)}
+              className="px-4 py-2 bg-amber-500 text-white rounded-lg disabled:opacity-50"
+            >
+              Berikutnya
+            </button>
+          </div>
+
+        </div>
+      )}
+
     </div>
   )
 }
