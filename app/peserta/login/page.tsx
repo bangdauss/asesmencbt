@@ -71,7 +71,7 @@ export default function LoginPeserta() {
       localStorage.setItem('id_asesmen', tokenData.id_asesmen.toString())
 
       // 5️⃣ Redirect ke halaman ujian
-      router.push('/peserta/ujian')
+      router.push(`/peserta/ujian/${tokenData.id_asesmen}`)
 
     } catch (err) {
       console.error(err)

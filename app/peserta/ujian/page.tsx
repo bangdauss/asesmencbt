@@ -36,7 +36,7 @@ export default function HalamanUjian() {
         console.log('ID ASESMEN:', idAsesmen)
 
         // =============================
-        // 🔥 AMBIL / BUAT LAPORAN
+        // AMBIL / BUAT LAPORAN
         // =============================
         const { data: laporan, error } = await supabase
           .from('laporan_ujian')
@@ -84,7 +84,7 @@ export default function HalamanUjian() {
         }
 
         // =============================
-        // ⏳ TIMER
+        // TIMER
         // =============================
         const mulai = new Date(laporanFinal.mulai_pada).getTime()
         const durasiMenit =
@@ -104,11 +104,11 @@ export default function HalamanUjian() {
         }, 1000)
 
         // =============================
-        // 🔥 AMBIL SOAL (FIX DISINI)
+        // 🔥 AMBIL SOAL (FIX FINAL)
         // =============================
         const { data: soalData, error: soalError } =
           await supabase
-            .from('bank_soal') // ✅ FIX
+            .from('bank_soal')
             .select('*')
             .eq('id_asesmen', idAsesmen)
             .order('id', { ascending: true })
@@ -116,6 +116,8 @@ export default function HalamanUjian() {
         if (soalError) {
           console.error('Error ambil soal:', soalError)
         }
+
+        console.log('SOAL DATA:', soalData)
 
         if (soalData && soalData.length > 0) {
           setSoalList(soalData)
@@ -211,16 +213,17 @@ export default function HalamanUjian() {
         <p>{soal.pertanyaan}</p>
       </div>
 
-      {/* OPSI */}
+      {/* 🔥 OPSI (FIX JSON) */}
       <div className="space-y-3">
-        {['a','b','c','d'].map((opsi) => (
-          <button
-            key={opsi}
-            className="w-full text-left p-4 border rounded-xl hover:bg-amber-50"
-          >
-            {soal[`opsi_${opsi}`]}
-          </button>
-        ))}
+        {soal.pilihan &&
+          Object.entries(soal.pilihan).map(([key, value]) => (
+            <button
+              key={key}
+              className="w-full text-left p-4 border rounded-xl hover:bg-amber-50"
+            >
+              {key}. {value as string}
+            </button>
+          ))}
       </div>
 
       {/* NAVIGASI NOMOR */}
