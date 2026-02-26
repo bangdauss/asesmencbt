@@ -1,17 +1,25 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import crypto from 'crypto'
+
+export const runtime = 'edge'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
+
+function generateToken() {
+  const array = new Uint8Array(32)
+  crypto.getRandomValues(array)
+  return Array.from(array)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
 
 export async function POST(req: Request) {
   const body = await req.json()
   const { no_peserta, password, token } = body
 
-  // 1️⃣ Cek siswa
   const { data: siswa } = await supabase
     .from('data_siswa')
     .select('*')
@@ -23,7 +31,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Login gagal' }, { status: 401 })
   }
 
-  // 2️⃣ Cek token aktif
   const { data: tokenData } = await supabase
     .from('token_ujian')
     .select('token, id_asesmen')
@@ -34,13 +41,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Token salah' }, { status: 401 })
   }
 
-  // 3️⃣ Generate session random
-  const sessionToken = crypto.randomBytes(32).toString('hex')
+  const sessionToken = generateToken()
 
   const expiredTime = new Date()
   expiredTime.setHours(expiredTime.getHours() + 2)
 
-  // 4️⃣ Simpan ke DB
   await supabase.from('sesi_ujian').insert({
     no_peserta,
     id_asesmen: tokenData.id_asesmen,
@@ -48,7 +53,6 @@ export async function POST(req: Request) {
     expired: expiredTime
   })
 
-  // 5️⃣ Set Cookie
   const response = NextResponse.json({
     success: true,
     id_asesmen: tokenData.id_asesmen
@@ -56,8 +60,8 @@ export async function POST(req: Request) {
 
   response.cookies.set('cbt_session', sessionToken, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 2
   })
