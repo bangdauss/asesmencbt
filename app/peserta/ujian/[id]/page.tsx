@@ -3,7 +3,7 @@
 export const runtime = "edge"
 
 import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { createClient } from "@supabase/supabase-js"
 
 const supabase = createClient(
@@ -18,122 +18,118 @@ export default function HalamanUjian() {
   const [sisaWaktu, setSisaWaktu] = useState(0)
   const [soalList, setSoalList] = useState<any[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [jawabanMap, setJawabanMap] = useState<Record<number, string>>({})
 
   useEffect(() => {
     let interval: NodeJS.Timeout
 
     const initUjian = async () => {
-      try {
-        const siswaSession = localStorage.getItem('siswa_session')
-        const idAsesmenRaw = localStorage.getItem('id_asesmen')
+      const siswaSession = localStorage.getItem("siswa_session")
+      const idAsesmenRaw = localStorage.getItem("id_asesmen")
 
-        if (!siswaSession || !idAsesmenRaw) {
-          router.push('/login')
-          return
-        }
+      if (!siswaSession || !idAsesmenRaw) {
+        router.push("/login")
+        return
+      }
 
-        const siswa = JSON.parse(siswaSession)
-        const idAsesmen = Number(idAsesmenRaw)
+      const siswa = JSON.parse(siswaSession)
+      const idAsesmen = Number(idAsesmenRaw)
 
-        console.log('ID ASESMEN:', idAsesmen)
+      // =============================
+      // AMBIL / BUAT LAPORAN
+      // =============================
+      const { data: laporan } = await supabase
+        .from("laporan_ujian")
+        .select(`
+          *,
+          data_asesmen ( durasi_menit )
+        `)
+        .eq("no_peserta", siswa.no_peserta)
+        .eq("id_asesmen", idAsesmen)
+        .single()
 
-        // =============================
-        // AMBIL / BUAT LAPORAN
-        // =============================
-        const { data: laporan, error } = await supabase
-          .from('laporan_ujian')
+      let laporanFinal = laporan
+
+      if (!laporan) {
+        const { data: newLaporan } = await supabase
+          .from("laporan_ujian")
+          .insert({
+            no_peserta: siswa.no_peserta,
+            id_asesmen: idAsesmen,
+            mulai_pada: new Date().toISOString(),
+            status: "sedang"
+          })
           .select(`
             *,
-            data_asesmen (
-              durasi_menit
-            )
+            data_asesmen ( durasi_menit )
           `)
-          .eq('no_peserta', siswa.no_peserta)
-          .eq('id_asesmen', idAsesmen)
           .single()
 
-        let laporanFinal = laporan
-
-        if (error || !laporan) {
-          const { data: newLaporan } = await supabase
-            .from('laporan_ujian')
-            .insert({
-              no_peserta: siswa.no_peserta,
-              id_asesmen: idAsesmen,
-              mulai_pada: new Date().toISOString(),
-              status: 'sedang'
-            })
-            .select(`
-              *,
-              data_asesmen (
-                durasi_menit
-              )
-            `)
-            .single()
-
-          laporanFinal = newLaporan
-        }
-
-        if (!laporanFinal) {
-          alert('Gagal memuat data ujian.')
-          router.push('/login')
-          return
-        }
-
-        if (laporanFinal.status === 'selesai') {
-          router.push('/peserta/hasil')
-          return
-        }
-
-        // =============================
-        // TIMER
-        // =============================
-        const mulai = new Date(laporanFinal.mulai_pada).getTime()
-        const durasiMenit =
-          laporanFinal.data_asesmen?.durasi_menit ?? 60
-
-        const selesai = mulai + durasiMenit * 60 * 1000
-
-        interval = setInterval(() => {
-          const sisa = Math.floor((selesai - Date.now()) / 1000)
-
-          if (sisa <= 0) {
-            clearInterval(interval)
-            handleAutoSubmit(siswa.no_peserta, idAsesmen)
-          } else {
-            setSisaWaktu(sisa)
-          }
-        }, 1000)
-
-        // =============================
-        // 🔥 AMBIL SOAL (FIX FINAL)
-        // =============================
-        const { data: soalData, error: soalError } =
-          await supabase
-            .from('bank_soal')
-            .select('*')
-            .eq('id_asesmen', idAsesmen)
-            .order('id', { ascending: true })
-
-        if (soalError) {
-          console.error('Error ambil soal:', soalError)
-        }
-
-        console.log('SOAL DATA:', soalData)
-
-        if (soalData && soalData.length > 0) {
-          setSoalList(soalData)
-          setCurrentIndex(0)
-        } else {
-          console.warn('Soal kosong!')
-        }
-
-        setLoading(false)
-      } catch (err) {
-        console.error(err)
-        alert('Terjadi kesalahan.')
-        router.push('/login')
+        laporanFinal = newLaporan
       }
+
+      if (!laporanFinal) {
+        alert("Gagal memuat ujian")
+        router.push("/login")
+        return
+      }
+
+      if (laporanFinal.status === "selesai") {
+        router.push("/peserta/hasil")
+        return
+      }
+
+      // =============================
+      // TIMER
+      // =============================
+      const mulai = new Date(laporanFinal.mulai_pada).getTime()
+      const durasiMenit =
+        laporanFinal.data_asesmen?.durasi_menit ?? 60
+
+      const selesai = mulai + durasiMenit * 60 * 1000
+
+      interval = setInterval(() => {
+        const sisa = Math.floor((selesai - Date.now()) / 1000)
+
+        if (sisa <= 0) {
+          clearInterval(interval)
+          handleSubmit("auto_submit")
+        } else {
+          setSisaWaktu(sisa)
+        }
+      }, 1000)
+
+      // =============================
+      // AMBIL SOAL
+      // =============================
+      const { data: soalData } = await supabase
+        .from("bank_soal")
+        .select("*")
+        .eq("id_asesmen", idAsesmen)
+        .order("id", { ascending: true })
+
+      if (soalData) {
+        setSoalList(soalData)
+      }
+
+      // =============================
+      // LOAD JAWABAN LAMA
+      // =============================
+      const { data: jawabanData } = await supabase
+        .from("jawaban_peserta")
+        .select("*")
+        .eq("no_peserta", siswa.no_peserta)
+        .eq("id_asesmen", idAsesmen)
+
+      if (jawabanData) {
+        const map: Record<number, string> = {}
+        jawabanData.forEach((j: any) => {
+          map[j.id_soal] = j.jawaban
+        })
+        setJawabanMap(map)
+      }
+
+      setLoading(false)
     }
 
     initUjian()
@@ -143,32 +139,48 @@ export default function HalamanUjian() {
     }
   }, [router])
 
-  const handleAutoSubmit = async (
-    noPeserta: string,
-    idAsesmen: number
-  ) => {
+  const handleJawab = async (opsi: string) => {
+    const siswaSession = localStorage.getItem("siswa_session")
+    const idAsesmenRaw = localStorage.getItem("id_asesmen")
+
+    if (!siswaSession || !idAsesmenRaw) return
+
+    const siswa = JSON.parse(siswaSession)
+    const idAsesmen = Number(idAsesmenRaw)
+    const soal = soalList[currentIndex]
+
+    setJawabanMap(prev => ({
+      ...prev,
+      [soal.id]: opsi
+    }))
+
+    await supabase.from("jawaban_peserta").upsert({
+      no_peserta: siswa.no_peserta,
+      id_asesmen: idAsesmen,
+      id_soal: soal.id,
+      jawaban: opsi
+    })
+  }
+
+  const handleSubmit = async (status: string = "selesai") => {
+    const siswaSession = localStorage.getItem("siswa_session")
+    const idAsesmenRaw = localStorage.getItem("id_asesmen")
+
+    if (!siswaSession || !idAsesmenRaw) return
+
+    const siswa = JSON.parse(siswaSession)
+    const idAsesmen = Number(idAsesmenRaw)
+
     await supabase
-      .from('laporan_ujian')
+      .from("laporan_ujian")
       .update({
-        status: 'auto_submit',
+        status,
         selesai_pada: new Date().toISOString()
       })
-      .eq('no_peserta', noPeserta)
-      .eq('id_asesmen', idAsesmen)
+      .eq("no_peserta", siswa.no_peserta)
+      .eq("id_asesmen", idAsesmen)
 
-    router.push('/peserta/hasil')
-  }
-
-  const handleNext = () => {
-    if (currentIndex < soalList.length - 1) {
-      setCurrentIndex(prev => prev + 1)
-    }
-  }
-
-  const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1)
-    }
+    router.push("/peserta/hasil")
   }
 
   const formatTime = (totalSeconds: number) => {
@@ -176,16 +188,16 @@ export default function HalamanUjian() {
     const menit = Math.floor((totalSeconds % 3600) / 60)
     const detik = totalSeconds % 60
 
-    return `${jam.toString().padStart(2, '0')}:${menit
+    return `${jam.toString().padStart(2, "0")}:${menit
       .toString()
-      .padStart(2, '0')}:${detik.toString().padStart(2, '0')}`
+      .padStart(2, "0")}:${detik.toString().padStart(2, "0")}`
   }
 
   if (loading) {
     return <div className="p-10 text-center">Menyiapkan ujian...</div>
   }
 
-  if (!soalList || soalList.length === 0) {
+  if (!soalList.length) {
     return (
       <div className="p-10 text-center text-red-500">
         Tidak ada soal ditemukan.
@@ -201,7 +213,6 @@ export default function HalamanUjian() {
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-xl font-bold">Ujian Berlangsung</h1>
-
         <div className="bg-red-100 text-red-600 px-6 py-3 rounded-xl font-mono font-bold text-lg">
           ⏳ {formatTime(sisaWaktu)}
         </div>
@@ -215,41 +226,58 @@ export default function HalamanUjian() {
         <p>{soal.pertanyaan}</p>
       </div>
 
-      {/* 🔥 OPSI (FIX JSON) */}
+      {/* OPSI */}
       <div className="space-y-3">
         {soal.pilihan &&
-          Object.entries(soal.pilihan).map(([key, value]) => (
-            <button
-              key={key}
-              className="w-full text-left p-4 border rounded-xl hover:bg-amber-50"
-            >
-              {key}. {value as string}
-            </button>
-          ))}
+          Object.entries(soal.pilihan).map(([key, value]) => {
+            const isSelected = jawabanMap[soal.id] === key
+
+            return (
+              <button
+                key={key}
+                onClick={() => handleJawab(key)}
+                className={`w-full text-left p-4 border rounded-xl transition
+                  ${
+                    isSelected
+                      ? "bg-green-200 border-green-500"
+                      : "hover:bg-amber-50"
+                  }`}
+              >
+                {key}. {value as string}
+              </button>
+            )
+          })}
       </div>
 
       {/* NAVIGASI NOMOR */}
       <div className="flex flex-wrap gap-2 mt-8">
-        {soalList.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentIndex(index)}
-            className={`w-10 h-10 rounded-lg font-bold ${
-              currentIndex === index
-                ? 'bg-amber-500 text-white'
-                : 'bg-slate-200'
-            }`}
-          >
-            {index + 1}
-          </button>
-        ))}
+        {soalList.map((item, index) => {
+          const sudahJawab = jawabanMap[item.id]
+
+          return (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={`w-10 h-10 rounded-lg font-bold transition
+                ${
+                  currentIndex === index
+                    ? "bg-amber-500 text-white"
+                    : sudahJawab
+                    ? "bg-green-500 text-white"
+                    : "bg-slate-200"
+                }`}
+            >
+              {index + 1}
+            </button>
+          )
+        })}
       </div>
 
-      {/* NEXT PREV */}
+      {/* NAVIGASI NEXT PREV */}
       <div className="flex justify-between mt-6">
         <button
           disabled={currentIndex === 0}
-          onClick={handlePrev}
+          onClick={() => setCurrentIndex(prev => prev - 1)}
           className="px-4 py-2 bg-slate-300 rounded-lg disabled:opacity-50"
         >
           Sebelumnya
@@ -257,12 +285,20 @@ export default function HalamanUjian() {
 
         <button
           disabled={currentIndex === soalList.length - 1}
-          onClick={handleNext}
+          onClick={() => setCurrentIndex(prev => prev + 1)}
           className="px-4 py-2 bg-amber-500 text-white rounded-lg disabled:opacity-50"
         >
           Berikutnya
         </button>
       </div>
+
+      {/* SUBMIT */}
+      <button
+        onClick={() => handleSubmit("selesai")}
+        className="mt-8 w-full bg-red-600 text-white py-3 rounded-xl font-bold"
+      >
+        Selesai Ujian
+      </button>
 
     </div>
   )
