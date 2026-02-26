@@ -19,21 +19,59 @@ export default function HalamanUjian() {
   const [soalList, setSoalList] = useState<any[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [jawabanMap, setJawabanMap] = useState<Record<number, string>>({})
-  const [laporanId, setLaporanId] = useState<number | null>(null)
+  const [flagMap, setFlagMap] = useState<Record<number, boolean>>({})
 
-  const getDeviceId = () => {
-    let deviceId = localStorage.getItem("device_id")
-    if (!deviceId) {
-      deviceId = crypto.randomUUID()
-      localStorage.setItem("device_id", deviceId)
-    }
-    return deviceId
-  }
-
+  /* ============================= */
+  /* SECURITY LAYER */
+  /* ============================= */
   useEffect(() => {
-    let interval: any
+    // Disable klik kanan
+    const disableContext = (e: any) => e.preventDefault()
+    document.addEventListener("contextmenu", disableContext)
 
-    const initUjian = async () => {
+    // Disable copy paste
+    const disableCopy = (e: any) => e.preventDefault()
+    document.addEventListener("copy", disableCopy)
+    document.addEventListener("paste", disableCopy)
+
+    // Disable F12 / DevTools
+    const disableDev = (e: KeyboardEvent) => {
+      if (
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(e.key)) ||
+        (e.ctrlKey && e.key === "U")
+      ) {
+        e.preventDefault()
+      }
+    }
+    document.addEventListener("keydown", disableDev)
+
+    // Force fullscreen (PC only)
+    const enterFullscreen = async () => {
+      if (window.innerWidth > 768 && document.documentElement.requestFullscreen) {
+        try {
+          await document.documentElement.requestFullscreen()
+        } catch {}
+      }
+    }
+
+    enterFullscreen()
+
+    return () => {
+      document.removeEventListener("contextmenu", disableContext)
+      document.removeEventListener("copy", disableCopy)
+      document.removeEventListener("paste", disableCopy)
+      document.removeEventListener("keydown", disableDev)
+    }
+  }, [])
+
+  /* ============================= */
+  /* INIT UJIAN */
+  /* ============================= */
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+
+    const init = async () => {
       const siswaSession = localStorage.getItem("siswa_session")
       const idAsesmenRaw = localStorage.getItem("id_asesmen")
 
@@ -44,146 +82,81 @@ export default function HalamanUjian() {
 
       const siswa = JSON.parse(siswaSession)
       const idAsesmen = Number(idAsesmenRaw)
-      const deviceId = getDeviceId()
 
       const { data: laporan } = await supabase
         .from("laporan_ujian")
-        .select(`*, data_asesmen ( durasi_menit )`)
+        .select(`*, data_asesmen(durasi_menit)`)
         .eq("no_peserta", siswa.no_peserta)
         .eq("id_asesmen", idAsesmen)
         .single()
 
-      let laporanFinal = laporan
-
       if (!laporan) {
-        const { data: newLaporan } = await supabase
-          .from("laporan_ujian")
-          .insert({
-            no_peserta: siswa.no_peserta,
-            id_asesmen: idAsesmen,
-            mulai_pada: new Date().toISOString(),
-            status: "sedang",
-            device_id: deviceId
-          })
-          .select(`*, data_asesmen ( durasi_menit )`)
-          .single()
-
-        laporanFinal = newLaporan
-      }
-
-      if (!laporanFinal) {
         router.push("/login")
         return
       }
 
-      // 🔒 DEVICE LOCK
-      if (laporanFinal.device_id && laporanFinal.device_id !== deviceId) {
-        alert("Ujian sudah dibuka di perangkat lain!")
-        router.push("/login")
+      if (laporan.status === "selesai") {
+        router.push("/peserta/hasil")
         return
       }
 
-      // 🔒 STATUS VALIDATION
-      if (laporanFinal.status !== "sedang") {
-        router.push("/login")
-        return
-      }
+      const mulai = new Date(laporan.mulai_pada).getTime()
+      const durasi = laporan.data_asesmen?.durasi_menit ?? 60
+      const selesai = mulai + durasi * 60 * 1000
 
-      setLaporanId(laporanFinal.id)
-
-      // ⏳ TIMER
-      const mulai = new Date(laporanFinal.mulai_pada).getTime()
-      const durasiMenit = laporanFinal.data_asesmen?.durasi_menit ?? 60
-      const selesai = mulai + durasiMenit * 60 * 1000
-
-      interval = setInterval(async () => {
+      interval = setInterval(() => {
         const sisa = Math.floor((selesai - Date.now()) / 1000)
-
         if (sisa <= 0) {
           clearInterval(interval)
           handleSubmit("auto_submit")
         } else {
           setSisaWaktu(sisa)
-
-          // 🔄 HEARTBEAT
-          await supabase
-            .from("laporan_ujian")
-            .update({ last_seen: new Date().toISOString() })
-            .eq("id", laporanFinal.id)
         }
       }, 1000)
 
-      // 📚 AMBIL SOAL
       const { data: soalData } = await supabase
         .from("bank_soal")
         .select("*")
         .eq("id_asesmen", idAsesmen)
-        .order("id", { ascending: true })
 
-      if (soalData) setSoalList(soalData)
+      if (soalData) {
+        // RANDOM SOAL
+        const shuffled = soalData.sort(() => Math.random() - 0.5)
 
-      // LOAD JAWABAN
-      const { data: jawabanData } = await supabase
-        .from("jawaban_peserta")
-        .select("*")
-        .eq("no_peserta", siswa.no_peserta)
-        .eq("id_asesmen", idAsesmen)
-
-      if (jawabanData) {
-        const map: Record<number, string> = {}
-        jawabanData.forEach((j: any) => {
-          map[j.id_soal] = j.jawaban
+        // RANDOM OPSI
+        shuffled.forEach((s: any) => {
+          if (s.pilihan) {
+            const entries = Object.entries(s.pilihan)
+            const randomEntries = entries.sort(() => Math.random() - 0.5)
+            s.pilihan = Object.fromEntries(randomEntries)
+          }
         })
-        setJawabanMap(map)
+
+        setSoalList(shuffled)
       }
 
       setLoading(false)
     }
 
-    initUjian()
+    init()
 
     return () => {
       if (interval) clearInterval(interval)
     }
   }, [router])
 
-  // 🚫 Disable klik kanan
-  useEffect(() => {
-    const disableRightClick = (e: any) => e.preventDefault()
-    document.addEventListener("contextmenu", disableRightClick)
-    return () => document.removeEventListener("contextmenu", disableRightClick)
-  }, [])
-
-  // 👀 Detect pindah tab
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.hidden) {
-        alert("Dilarang pindah tab selama ujian!")
-      }
-    }
-    document.addEventListener("visibilitychange", handleVisibility)
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibility)
-  }, [])
-
   const handleJawab = async (opsi: string) => {
-    const siswa = JSON.parse(localStorage.getItem("siswa_session")!)
-    const idAsesmen = Number(localStorage.getItem("id_asesmen"))
     const soal = soalList[currentIndex]
-
     setJawabanMap(prev => ({ ...prev, [soal.id]: opsi }))
-
-    await supabase.from("jawaban_peserta").upsert({
-      no_peserta: siswa.no_peserta,
-      id_asesmen: idAsesmen,
-      id_soal: soal.id,
-      jawaban: opsi
-    })
   }
 
   const handleSubmit = async (status = "selesai") => {
-    const siswa = JSON.parse(localStorage.getItem("siswa_session")!)
-    const idAsesmen = Number(localStorage.getItem("id_asesmen"))
+    const siswaSession = localStorage.getItem("siswa_session")
+    const idAsesmenRaw = localStorage.getItem("id_asesmen")
+    if (!siswaSession || !idAsesmenRaw) return
+
+    const siswa = JSON.parse(siswaSession)
+    const idAsesmen = Number(idAsesmenRaw)
 
     await supabase
       .from("laporan_ujian")
@@ -197,70 +170,102 @@ export default function HalamanUjian() {
     router.push("/peserta/hasil")
   }
 
-  const formatTime = (t: number) => {
-    const jam = Math.floor(t / 3600)
-    const menit = Math.floor((t % 3600) / 60)
-    const detik = t % 60
+  const formatTime = (s: number) => {
+    const jam = Math.floor(s / 3600)
+    const menit = Math.floor((s % 3600) / 60)
+    const detik = s % 60
     return `${jam.toString().padStart(2, "0")}:${menit
       .toString()
       .padStart(2, "0")}:${detik.toString().padStart(2, "0")}`
   }
 
   if (loading) return <div className="p-10 text-center">Loading...</div>
-  if (!soalList.length)
-    return <div className="p-10 text-center">Tidak ada soal</div>
+  if (!soalList.length) return <div className="p-10">Tidak ada soal</div>
 
   const soal = soalList[currentIndex]
 
   return (
-    <div className="min-h-screen bg-white p-8">
-      <div className="flex justify-between mb-6">
-        <h1 className="font-bold text-xl">Ujian Berlangsung</h1>
-        <div className="bg-red-100 text-red-600 px-6 py-3 rounded-xl font-mono font-bold">
+    <div className="min-h-screen bg-gray-100">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center bg-white shadow px-6 py-4">
+        <h1 className="font-bold">Ujian Berlangsung</h1>
+        <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg font-mono font-bold">
           ⏳ {formatTime(sisaWaktu)}
         </div>
       </div>
 
-      <div className="bg-slate-50 p-6 rounded-xl mb-6">
-        <h2 className="font-bold mb-4">
-          Soal {currentIndex + 1} dari {soalList.length}
-        </h2>
+      <div className="flex flex-col md:flex-row">
 
-        <p className="mb-4">{soal.pertanyaan}</p>
+        {/* SOAL */}
+        <div className="flex-1 p-6">
+          <div className="bg-white p-6 rounded-xl shadow">
+            <h2 className="font-bold mb-4">
+              Soal {currentIndex + 1} dari {soalList.length}
+            </h2>
 
-        {soal.gambar && (
-          <img
-            src={soal.gambar.trim()}
-            className="max-h-72 object-contain rounded-lg border"
-          />
-        )}
+            <p className="mb-4 whitespace-pre-line">
+              {soal.pertanyaan}
+            </p>
+
+            {soal.gambar && (
+              <img
+                src={soal.gambar}
+                className="max-h-72 object-contain mb-4 rounded border"
+              />
+            )}
+
+            <div className="space-y-3">
+              {Object.entries(soal.pilihan || {}).map(([key, value]) => {
+                const selected = jawabanMap[soal.id] === key
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleJawab(key)}
+                    className={`w-full text-left p-3 border rounded-lg transition ${
+                      selected
+                        ? "bg-green-200 border-green-500"
+                        : "hover:bg-amber-50"
+                    }`}
+                  >
+                    <b>{key}.</b> {value as string}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* PANEL NOMOR */}
+        <div className="md:w-72 bg-white border-l p-6">
+          <h3 className="font-bold mb-4">Daftar Soal</h3>
+
+          <div className="grid grid-cols-5 md:grid-cols-4 gap-2">
+            {soalList.map((item, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentIndex(i)}
+                className={`h-10 rounded font-bold ${
+                  currentIndex === i
+                    ? "bg-amber-500 text-white"
+                    : jawabanMap[item.id]
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-200"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => handleSubmit()}
+            className="mt-6 w-full bg-red-600 text-white py-3 rounded-lg font-bold"
+          >
+            Selesai Ujian
+          </button>
+        </div>
       </div>
-
-      <div className="space-y-3">
-        {Object.entries(soal.pilihan || {}).map(([key, value]) => {
-          const isSelected = jawabanMap[soal.id] === key
-          return (
-            <button
-              key={key}
-              onClick={() => handleJawab(key)}
-              className={`w-full text-left p-4 border rounded-xl ${
-                isSelected
-                  ? "bg-green-200 border-green-500"
-                  : "hover:bg-amber-50"
-              }`}
-            >
-              {key}. {value as string}
-            </button>
-          )
-        })}
-      </div>
-
-      <button
-        onClick={() => handleSubmit()}
-        className="mt-8 w-full bg-red-600 text-white py-3 rounded-xl font-bold"
-      >
-        Selesai Ujian
-      </button>
     </div>
   )
 }
