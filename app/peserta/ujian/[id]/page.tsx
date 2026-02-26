@@ -19,9 +19,19 @@ export default function HalamanUjian() {
   const [soalList, setSoalList] = useState<any[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [jawabanMap, setJawabanMap] = useState<Record<number, string>>({})
+  const [laporanId, setLaporanId] = useState<number | null>(null)
+
+  const getDeviceId = () => {
+    let deviceId = localStorage.getItem("device_id")
+    if (!deviceId) {
+      deviceId = crypto.randomUUID()
+      localStorage.setItem("device_id", deviceId)
+    }
+    return deviceId
+  }
 
   useEffect(() => {
-    let interval: NodeJS.Timeout
+    let interval: any
 
     const initUjian = async () => {
       const siswaSession = localStorage.getItem("siswa_session")
@@ -34,16 +44,11 @@ export default function HalamanUjian() {
 
       const siswa = JSON.parse(siswaSession)
       const idAsesmen = Number(idAsesmenRaw)
+      const deviceId = getDeviceId()
 
-      // =============================
-      // AMBIL / BUAT LAPORAN
-      // =============================
       const { data: laporan } = await supabase
         .from("laporan_ujian")
-        .select(`
-          *,
-          data_asesmen ( durasi_menit )
-        `)
+        .select(`*, data_asesmen ( durasi_menit )`)
         .eq("no_peserta", siswa.no_peserta)
         .eq("id_asesmen", idAsesmen)
         .single()
@@ -57,38 +62,41 @@ export default function HalamanUjian() {
             no_peserta: siswa.no_peserta,
             id_asesmen: idAsesmen,
             mulai_pada: new Date().toISOString(),
-            status: "sedang"
+            status: "sedang",
+            device_id: deviceId
           })
-          .select(`
-            *,
-            data_asesmen ( durasi_menit )
-          `)
+          .select(`*, data_asesmen ( durasi_menit )`)
           .single()
 
         laporanFinal = newLaporan
       }
 
       if (!laporanFinal) {
-        alert("Gagal memuat ujian")
         router.push("/login")
         return
       }
 
-      if (laporanFinal.status === "selesai") {
-        router.push("/peserta/hasil")
+      // 🔒 DEVICE LOCK
+      if (laporanFinal.device_id && laporanFinal.device_id !== deviceId) {
+        alert("Ujian sudah dibuka di perangkat lain!")
+        router.push("/login")
         return
       }
 
-      // =============================
-      // TIMER
-      // =============================
-      const mulai = new Date(laporanFinal.mulai_pada).getTime()
-      const durasiMenit =
-        laporanFinal.data_asesmen?.durasi_menit ?? 60
+      // 🔒 STATUS VALIDATION
+      if (laporanFinal.status !== "sedang") {
+        router.push("/login")
+        return
+      }
 
+      setLaporanId(laporanFinal.id)
+
+      // ⏳ TIMER
+      const mulai = new Date(laporanFinal.mulai_pada).getTime()
+      const durasiMenit = laporanFinal.data_asesmen?.durasi_menit ?? 60
       const selesai = mulai + durasiMenit * 60 * 1000
 
-      interval = setInterval(() => {
+      interval = setInterval(async () => {
         const sisa = Math.floor((selesai - Date.now()) / 1000)
 
         if (sisa <= 0) {
@@ -96,25 +104,25 @@ export default function HalamanUjian() {
           handleSubmit("auto_submit")
         } else {
           setSisaWaktu(sisa)
+
+          // 🔄 HEARTBEAT
+          await supabase
+            .from("laporan_ujian")
+            .update({ last_seen: new Date().toISOString() })
+            .eq("id", laporanFinal.id)
         }
       }, 1000)
 
-      // =============================
-      // AMBIL SOAL
-      // =============================
+      // 📚 AMBIL SOAL
       const { data: soalData } = await supabase
         .from("bank_soal")
         .select("*")
         .eq("id_asesmen", idAsesmen)
         .order("id", { ascending: true })
 
-      if (soalData) {
-        setSoalList(soalData)
-      }
+      if (soalData) setSoalList(soalData)
 
-      // =============================
-      // LOAD JAWABAN LAMA
-      // =============================
+      // LOAD JAWABAN
       const { data: jawabanData } = await supabase
         .from("jawaban_peserta")
         .select("*")
@@ -139,20 +147,31 @@ export default function HalamanUjian() {
     }
   }, [router])
 
+  // 🚫 Disable klik kanan
+  useEffect(() => {
+    const disableRightClick = (e: any) => e.preventDefault()
+    document.addEventListener("contextmenu", disableRightClick)
+    return () => document.removeEventListener("contextmenu", disableRightClick)
+  }, [])
+
+  // 👀 Detect pindah tab
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        alert("Dilarang pindah tab selama ujian!")
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility)
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility)
+  }, [])
+
   const handleJawab = async (opsi: string) => {
-    const siswaSession = localStorage.getItem("siswa_session")
-    const idAsesmenRaw = localStorage.getItem("id_asesmen")
-
-    if (!siswaSession || !idAsesmenRaw) return
-
-    const siswa = JSON.parse(siswaSession)
-    const idAsesmen = Number(idAsesmenRaw)
+    const siswa = JSON.parse(localStorage.getItem("siswa_session")!)
+    const idAsesmen = Number(localStorage.getItem("id_asesmen"))
     const soal = soalList[currentIndex]
 
-    setJawabanMap(prev => ({
-      ...prev,
-      [soal.id]: opsi
-    }))
+    setJawabanMap(prev => ({ ...prev, [soal.id]: opsi }))
 
     await supabase.from("jawaban_peserta").upsert({
       no_peserta: siswa.no_peserta,
@@ -162,14 +181,9 @@ export default function HalamanUjian() {
     })
   }
 
-  const handleSubmit = async (status: string = "selesai") => {
-    const siswaSession = localStorage.getItem("siswa_session")
-    const idAsesmenRaw = localStorage.getItem("id_asesmen")
-
-    if (!siswaSession || !idAsesmenRaw) return
-
-    const siswa = JSON.parse(siswaSession)
-    const idAsesmen = Number(idAsesmenRaw)
+  const handleSubmit = async (status = "selesai") => {
+    const siswa = JSON.parse(localStorage.getItem("siswa_session")!)
+    const idAsesmen = Number(localStorage.getItem("id_asesmen"))
 
     await supabase
       .from("laporan_ujian")
@@ -183,123 +197,70 @@ export default function HalamanUjian() {
     router.push("/peserta/hasil")
   }
 
-  const formatTime = (totalSeconds: number) => {
-    const jam = Math.floor(totalSeconds / 3600)
-    const menit = Math.floor((totalSeconds % 3600) / 60)
-    const detik = totalSeconds % 60
-
+  const formatTime = (t: number) => {
+    const jam = Math.floor(t / 3600)
+    const menit = Math.floor((t % 3600) / 60)
+    const detik = t % 60
     return `${jam.toString().padStart(2, "0")}:${menit
       .toString()
       .padStart(2, "0")}:${detik.toString().padStart(2, "0")}`
   }
 
-  if (loading) {
-    return <div className="p-10 text-center">Menyiapkan ujian...</div>
-  }
-
-  if (!soalList.length) {
-    return (
-      <div className="p-10 text-center text-red-500">
-        Tidak ada soal ditemukan.
-      </div>
-    )
-  }
+  if (loading) return <div className="p-10 text-center">Loading...</div>
+  if (!soalList.length)
+    return <div className="p-10 text-center">Tidak ada soal</div>
 
   const soal = soalList[currentIndex]
 
   return (
     <div className="min-h-screen bg-white p-8">
-
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold">Ujian Berlangsung</h1>
-        <div className="bg-red-100 text-red-600 px-6 py-3 rounded-xl font-mono font-bold text-lg">
+      <div className="flex justify-between mb-6">
+        <h1 className="font-bold text-xl">Ujian Berlangsung</h1>
+        <div className="bg-red-100 text-red-600 px-6 py-3 rounded-xl font-mono font-bold">
           ⏳ {formatTime(sisaWaktu)}
         </div>
       </div>
 
-      {/* PERTANYAAN */}
       <div className="bg-slate-50 p-6 rounded-xl mb-6">
         <h2 className="font-bold mb-4">
           Soal {currentIndex + 1} dari {soalList.length}
         </h2>
-        <p>{soal.pertanyaan}</p>
+
+        <p className="mb-4">{soal.pertanyaan}</p>
+
+        {soal.gambar && (
+          <img
+            src={soal.gambar.trim()}
+            className="max-h-72 object-contain rounded-lg border"
+          />
+        )}
       </div>
 
-      {/* OPSI */}
       <div className="space-y-3">
-        {soal.pilihan &&
-          Object.entries(soal.pilihan).map(([key, value]) => {
-            const isSelected = jawabanMap[soal.id] === key
-
-            return (
-              <button
-                key={key}
-                onClick={() => handleJawab(key)}
-                className={`w-full text-left p-4 border rounded-xl transition
-                  ${
-                    isSelected
-                      ? "bg-green-200 border-green-500"
-                      : "hover:bg-amber-50"
-                  }`}
-              >
-                {key}. {value as string}
-              </button>
-            )
-          })}
-      </div>
-
-      {/* NAVIGASI NOMOR */}
-      <div className="flex flex-wrap gap-2 mt-8">
-        {soalList.map((item, index) => {
-          const sudahJawab = jawabanMap[item.id]
-
+        {Object.entries(soal.pilihan || {}).map(([key, value]) => {
+          const isSelected = jawabanMap[soal.id] === key
           return (
             <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={`w-10 h-10 rounded-lg font-bold transition
-                ${
-                  currentIndex === index
-                    ? "bg-amber-500 text-white"
-                    : sudahJawab
-                    ? "bg-green-500 text-white"
-                    : "bg-slate-200"
-                }`}
+              key={key}
+              onClick={() => handleJawab(key)}
+              className={`w-full text-left p-4 border rounded-xl ${
+                isSelected
+                  ? "bg-green-200 border-green-500"
+                  : "hover:bg-amber-50"
+              }`}
             >
-              {index + 1}
+              {key}. {value as string}
             </button>
           )
         })}
       </div>
 
-      {/* NAVIGASI NEXT PREV */}
-      <div className="flex justify-between mt-6">
-        <button
-          disabled={currentIndex === 0}
-          onClick={() => setCurrentIndex(prev => prev - 1)}
-          className="px-4 py-2 bg-slate-300 rounded-lg disabled:opacity-50"
-        >
-          Sebelumnya
-        </button>
-
-        <button
-          disabled={currentIndex === soalList.length - 1}
-          onClick={() => setCurrentIndex(prev => prev + 1)}
-          className="px-4 py-2 bg-amber-500 text-white rounded-lg disabled:opacity-50"
-        >
-          Berikutnya
-        </button>
-      </div>
-
-      {/* SUBMIT */}
       <button
-        onClick={() => handleSubmit("selesai")}
+        onClick={() => handleSubmit()}
         className="mt-8 w-full bg-red-600 text-white py-3 rounded-xl font-bold"
       >
         Selesai Ujian
       </button>
-
     </div>
   )
 }
