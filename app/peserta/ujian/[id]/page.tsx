@@ -19,51 +19,6 @@ export default function HalamanUjian() {
   const [soalList, setSoalList] = useState<any[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [jawabanMap, setJawabanMap] = useState<Record<number, string>>({})
-  const [flagMap, setFlagMap] = useState<Record<number, boolean>>({})
-
-  /* ============================= */
-  /* SECURITY LAYER */
-  /* ============================= */
-  useEffect(() => {
-    // Disable klik kanan
-    const disableContext = (e: any) => e.preventDefault()
-    document.addEventListener("contextmenu", disableContext)
-
-    // Disable copy paste
-    const disableCopy = (e: any) => e.preventDefault()
-    document.addEventListener("copy", disableCopy)
-    document.addEventListener("paste", disableCopy)
-
-    // Disable F12 / DevTools
-    const disableDev = (e: KeyboardEvent) => {
-      if (
-        e.key === "F12" ||
-        (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(e.key)) ||
-        (e.ctrlKey && e.key === "U")
-      ) {
-        e.preventDefault()
-      }
-    }
-    document.addEventListener("keydown", disableDev)
-
-    // Force fullscreen (PC only)
-    const enterFullscreen = async () => {
-      if (window.innerWidth > 768 && document.documentElement.requestFullscreen) {
-        try {
-          await document.documentElement.requestFullscreen()
-        } catch {}
-      }
-    }
-
-    enterFullscreen()
-
-    return () => {
-      document.removeEventListener("contextmenu", disableContext)
-      document.removeEventListener("copy", disableCopy)
-      document.removeEventListener("paste", disableCopy)
-      document.removeEventListener("keydown", disableDev)
-    }
-  }, [])
 
   /* ============================= */
   /* INIT UJIAN */
@@ -90,12 +45,7 @@ export default function HalamanUjian() {
         .eq("id_asesmen", idAsesmen)
         .single()
 
-      if (!laporan) {
-        router.push("/login")
-        return
-      }
-
-      if (laporan.status === "selesai") {
+      if (!laporan || laporan.status === "selesai") {
         router.push("/peserta/hasil")
         return
       }
@@ -120,18 +70,7 @@ export default function HalamanUjian() {
         .eq("id_asesmen", idAsesmen)
 
       if (soalData) {
-        // RANDOM SOAL
         const shuffled = soalData.sort(() => Math.random() - 0.5)
-
-        // RANDOM OPSI
-        shuffled.forEach((s: any) => {
-          if (s.pilihan) {
-            const entries = Object.entries(s.pilihan)
-            const randomEntries = entries.sort(() => Math.random() - 0.5)
-            s.pilihan = Object.fromEntries(randomEntries)
-          }
-        })
-
         setSoalList(shuffled)
       }
 
@@ -139,17 +78,14 @@ export default function HalamanUjian() {
     }
 
     init()
-
     return () => {
       if (interval) clearInterval(interval)
     }
   }, [router])
 
-  const handleJawab = async (opsi: string) => {
-    const soal = soalList[currentIndex]
-    setJawabanMap(prev => ({ ...prev, [soal.id]: opsi }))
-  }
-
+  /* ============================= */
+  /* SUBMIT UJIAN + SCORING */
+  /* ============================= */
   const handleSubmit = async (status = "selesai") => {
     const siswaSession = localStorage.getItem("siswa_session")
     const idAsesmenRaw = localStorage.getItem("id_asesmen")
@@ -158,16 +94,35 @@ export default function HalamanUjian() {
     const siswa = JSON.parse(siswaSession)
     const idAsesmen = Number(idAsesmenRaw)
 
-    await supabase
-      .from("laporan_ujian")
-      .update({
-        status,
-        selesai_pada: new Date().toISOString()
-      })
-      .eq("no_peserta", siswa.no_peserta)
-      .eq("id_asesmen", idAsesmen)
+    try {
+      // 🔥 HITUNG NILAI DULU
+      const { error: scoreError } = await supabase.rpc(
+        "hitung_nilai_pg",
+        {
+          p_no_peserta: siswa.no_peserta,
+          p_id_asesmen: idAsesmen
+        }
+      )
 
-    router.push("/peserta/hasil")
+      if (scoreError) throw scoreError
+
+      // 🔥 UPDATE STATUS
+      const { error: updateError } = await supabase
+        .from("laporan_ujian")
+        .update({
+          status,
+          selesai_pada: new Date().toISOString()
+        })
+        .eq("no_peserta", siswa.no_peserta)
+        .eq("id_asesmen", idAsesmen)
+
+      if (updateError) throw updateError
+
+      router.push("/peserta/hasil")
+    } catch (err) {
+      console.error("Submit error:", err)
+      alert("Terjadi kesalahan saat menyelesaikan ujian.")
+    }
   }
 
   const formatTime = (s: number) => {
@@ -208,25 +163,13 @@ export default function HalamanUjian() {
               {soal.pertanyaan}
             </p>
 
-            {soal.gambar && (
-              <img
-                src={soal.gambar}
-                className="max-h-72 object-contain mb-4 rounded border"
-              />
-            )}
-
             <div className="space-y-3">
               {Object.entries(soal.pilihan || {}).map(([key, value]) => {
-                const selected = jawabanMap[soal.id] === key
                 return (
                   <button
                     key={key}
-                    onClick={() => handleJawab(key)}
-                    className={`w-full text-left p-3 border rounded-lg transition ${
-                      selected
-                        ? "bg-green-200 border-green-500"
-                        : "hover:bg-amber-50"
-                    }`}
+                    onClick={() => {}}
+                    className="w-full text-left p-3 border rounded-lg hover:bg-amber-50"
                   >
                     <b>{key}.</b> {value as string}
                   </button>
@@ -236,28 +179,8 @@ export default function HalamanUjian() {
           </div>
         </div>
 
-        {/* PANEL NOMOR */}
+        {/* PANEL */}
         <div className="md:w-72 bg-white border-l p-6">
-          <h3 className="font-bold mb-4">Daftar Soal</h3>
-
-          <div className="grid grid-cols-5 md:grid-cols-4 gap-2">
-            {soalList.map((item, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentIndex(i)}
-                className={`h-10 rounded font-bold ${
-                  currentIndex === i
-                    ? "bg-amber-500 text-white"
-                    : jawabanMap[item.id]
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-200"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-
           <button
             onClick={() => handleSubmit()}
             className="mt-6 w-full bg-red-600 text-white py-3 rounded-lg font-bold"
